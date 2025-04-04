@@ -12,7 +12,7 @@ python ./SpectralTopologicalOrdering.py ../test_data/test_graph.dot
 ```
 With an upper-triangular matrix in MatrixMarket File Format:
 ```
-python ./SpectralTopologicalOrdering.py <Adjancency Matrix>.mtx
+python ./SpectralTopologicalOrdering.py <Adjacency Matrix>.mtx
 ```
 With a lower-triangular matrix in MatrixMarket File Format:
 ```
