@@ -154,6 +154,57 @@ def access_pattern_max_topOrd(graph: nx.MultiDiGraph):
 
 
 
+def access_pattern_min_topOrd(graph: nx.MultiDiGraph):
+    dependency_counter = dict()
+    for v in graph.nodes:
+        dependency_counter[v] = 0
+        
+    topOrd = []
+    ready = set()
+    
+    for v in graph.nodes:
+        if dependency_counter[v] == graph.in_degree(v):
+            ready.add(v)
+            
+    accesses = []
+    last_access = dict()
+            
+    while ready:
+        min_score = None
+        v = None
+        for u in ready:
+            score = len(accesses) + 1
+            for edge in graph.in_edges(u):
+                src = edge[0]
+                score = min(score, len(accesses) - last_access[src])
+                
+            if min_score == None or score < min_score:
+                min_score = score
+                v = u
+        
+        topOrd.append(v)
+        for edge in graph.in_edges(v):
+            src = edge[0]
+            accesses.append(src)
+            last_access[src] = len(accesses) - 1
+        
+        accesses.append(v)
+        last_access[v] = len(accesses) - 1
+        ready.remove(v)
+        
+        for edge in graph.out_edges(v):
+            tgt = edge[1]
+            dependency_counter[tgt] += 1
+            if dependency_counter[tgt] == graph.in_degree(tgt):
+                ready.add(tgt)
+    
+    assert(len(topOrd) == graph.number_of_nodes())
+    return topOrd
+
+
+
+
+
 def access_pattern_sum_topOrd(graph: nx.MultiDiGraph):
     dependency_counter = dict()
     for v in graph.nodes:
@@ -297,8 +348,6 @@ def main():
         print("Invalid Topological order!")
         return 1
     
-    print(top_order)
-    
     plt.figure("BFS Reordered Graph: " + graph_name)
     plt.spy(nx.to_numpy_array(graph, top_order))
     
@@ -310,8 +359,6 @@ def main():
     if (not check_valid_top_order(graph, top_order)):
         print("Invalid Topological order!")
         return 1
-    
-    print(top_order)
     
     plt.figure("DFS Reordered Graph: " + graph_name)
     plt.spy(nx.to_numpy_array(graph, top_order))
@@ -326,8 +373,6 @@ def main():
         print("Invalid Topological order!")
         return 1
     
-    print(top_order)
-    
     plt.figure("Earliest Parent Reordered Graph: " + graph_name)
     plt.spy(nx.to_numpy_array(graph, top_order))
     
@@ -340,9 +385,19 @@ def main():
         print("Invalid Topological order!")
         return 1
     
-    print(top_order)
-    
     plt.figure("Access Pattern Max Reordered Graph: " + graph_name)
+    plt.spy(nx.to_numpy_array(graph, top_order))
+    
+    
+    
+    
+    top_order = access_pattern_min_topOrd(graph)
+    
+    if (not check_valid_top_order(graph, top_order)):
+        print("Invalid Topological order!")
+        return 1
+    
+    plt.figure("Access Pattern Min Reordered Graph: " + graph_name)
     plt.spy(nx.to_numpy_array(graph, top_order))
     
     
@@ -353,8 +408,6 @@ def main():
     if (not check_valid_top_order(graph, top_order)):
         print("Invalid Topological order!")
         return 1
-    
-    print(top_order)
     
     plt.figure("Access Pattern Sum Reordered Graph: " + graph_name)
     plt.spy(nx.to_numpy_array(graph, top_order))
@@ -367,8 +420,6 @@ def main():
     if (not check_valid_top_order(graph, top_order)):
         print("Invalid Topological order!")
         return 1
-    
-    print(top_order)
     
     plt.figure("Access Pattern Avg Reordered Graph: " + graph_name)
     plt.spy(nx.to_numpy_array(graph, top_order))
