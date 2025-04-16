@@ -103,6 +103,46 @@ def earliest_parent_topOrd(graph: nx.MultiDiGraph):
     assert(len(topOrd) == graph.number_of_nodes())
     return topOrd
 
+
+def sum_edge_length_parent_topOrd(graph: nx.MultiDiGraph):
+    dependency_counter = dict()
+    priority = dict()
+    for v in graph.nodes:
+        dependency_counter[v] = 0
+        priority[v] = 0
+        
+    topOrd = []
+    queue = []
+    
+    for v in graph.nodes:
+        if dependency_counter[v] == graph.in_degree(v):
+            queue.append(v)
+            
+    while len(queue) > 0:
+        max_score = None
+        best_vert = None
+        for v in queue:
+            if max_score == None or priority[v] > max_score:
+                max_score = priority[v]
+                best_vert = v
+        
+        topOrd.append(best_vert)
+        queue.remove(best_vert)
+        for v in queue:
+            priority[v] += graph.in_degree(v)
+        
+        for edge in graph.out_edges(best_vert):
+            tgt = edge[1]
+            dependency_counter[tgt] += 1
+            if dependency_counter[tgt] == graph.in_degree(tgt):
+                queue.append(tgt)
+                for par, _ in graph.in_edges(tgt):
+                    priority[tgt] += topOrd[::-1].index(par)
+        
+    assert(len(topOrd) == graph.number_of_nodes())
+    return topOrd
+
+
 def access_pattern_max_topOrd(graph: nx.MultiDiGraph):
     dependency_counter = dict()
     for v in graph.nodes:
@@ -374,6 +414,17 @@ def main():
         return 1
     
     plt.figure("Earliest Parent Reordered Graph: " + graph_name)
+    plt.spy(nx.to_numpy_array(graph, top_order))
+    
+    
+    
+    top_order = sum_edge_length_parent_topOrd(graph)
+    
+    if (not check_valid_top_order(graph, top_order)):
+        print("Invalid Topological order!")
+        return 1
+    
+    plt.figure("Sum Edge Length Reordered Graph: " + graph_name)
     plt.spy(nx.to_numpy_array(graph, top_order))
     
     
