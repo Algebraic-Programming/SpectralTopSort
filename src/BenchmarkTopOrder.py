@@ -28,7 +28,7 @@ import seaborn as sns
 import sys
 
 from SpectralTopologicalOrdering import nx_graph_from_upper_triangular_matrix, check_valid_top_order, spec_top_order_whole
-from BaselinesTopOrder import bfs_topOrd, dfs_topOrd, earliest_parent_topOrd, access_pattern_max_topOrd, access_pattern_avg_topOrd, access_pattern_sum_topOrd, sum_edge_length_parent_topOrd
+from BaselinesTopOrder import bfs_topOrd, dfs_topOrd, earliest_parent_topOrd, access_pattern_max_topOrd, access_pattern_avg_topOrd, access_pattern_sum_topOrd, sum_edge_length_parent_topOrd, max_sibling_score_in_window
 
 def compute_edge_lengths(graph: nx.MultiDiGraph, topOrder: list) -> list:
     topOrdInd = dict()
@@ -130,7 +130,8 @@ def main():
         "Edge_Length_Sum": sum_edge_length_parent_topOrd,
         "Access_Pattern_Max": access_pattern_max_topOrd,
         "Access_Pattern_Sum": access_pattern_sum_topOrd,
-        "Access_Pattern_Avg": access_pattern_avg_topOrd        
+        "Access_Pattern_Avg": access_pattern_avg_topOrd,
+        "Max_Windowed_Sibling": max_sibling_score_in_window
     }
     
     edge_length_metric_name = "Edge Length"

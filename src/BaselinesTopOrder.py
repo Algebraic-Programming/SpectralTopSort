@@ -344,6 +344,65 @@ def access_pattern_avg_topOrd(graph: nx.MultiDiGraph):
     return topOrd
 
 
+def max_sibling_score_in_window(graph: nx.MultiDiGraph, window_size: int = 5):
+    """
+    Locality reordering based on the paper \"Speedup Graph Processing by Graph Ordering\" by Hao Wei, Jeffrey Xu Yu, Can Lu, and Xuemin Lin.
+    """
+    
+    assert(window_size >= 1)
+    
+    def score(u: None, v: None):
+        score_acc = 0
+        
+        u_par = set([par for par, _ in graph.in_edges(u)])
+        v_par = set([par for par, _ in graph.in_edges(v)])
+        
+        if u in v_par:
+            score_acc += 1
+        if v in u_par:
+            score_acc += 1
+            
+        score_acc += len( u_par & v_par )
+        
+        return score_acc
+    
+    def score_sum(u: None, vert_list: list[None]):
+        return sum([score(u,v) for v in vert_list])
+        
+    
+    dependency_counter = dict()
+    for v in graph.nodes:
+        dependency_counter[v] = 0
+        
+    topOrd = []
+    queue = []
+    
+    for v in graph.nodes:
+        if dependency_counter[v] == graph.in_degree(v):
+            queue.append(v)
+            
+    while len(queue) > 0:
+        max_score = None
+        best_vert = None
+        for v in queue:
+            v_score = score_sum(v, topOrd[-window_size:])
+            if max_score == None or v_score > max_score:
+                max_score = v_score
+                best_vert = v
+        
+        topOrd.append(best_vert)
+        queue.remove(best_vert)
+        
+        for edge in graph.out_edges(best_vert):
+            tgt = edge[1]
+            dependency_counter[tgt] += 1
+            if dependency_counter[tgt] == graph.in_degree(tgt):
+                queue.append(tgt)
+        
+    assert(len(topOrd) == graph.number_of_nodes())
+    return topOrd
+
+
 
 
 
@@ -473,6 +532,17 @@ def main():
         return 1
     
     plt.figure("Access Pattern Avg Reordered Graph: " + graph_name)
+    plt.spy(nx.to_numpy_array(graph, top_order))
+    
+    
+    
+    top_order = max_sibling_score_in_window(graph)
+    
+    if (not check_valid_top_order(graph, top_order)):
+        print("Invalid Topological order!")
+        return 1
+    
+    plt.figure("Max Windowed Sibling Score Reordered Graph: " + graph_name)
     plt.spy(nx.to_numpy_array(graph, top_order))
     
     
