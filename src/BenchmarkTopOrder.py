@@ -148,7 +148,8 @@ def main():
             df_list_dict.append({
                 "Algorithm": alg_name,
                 "Metric": edge_length_metric_name,
-                "Distance": dist
+                "Distance": dist,
+                "Graph": graph_name
             })
         
         stack_distances = compute_stack_distances(graph, top_order)
@@ -156,21 +157,23 @@ def main():
             df_list_dict.append({
                 "Algorithm": alg_name,
                 "Metric": stack_reuse_metric_name,
-                "Distance": dist
+                "Distance": dist,
+                "Graph": graph_name
             })
         
-    df = pd.DataFrame(df_list_dict, columns=["Algorithm", "Metric", "Distance"])
+    df = pd.DataFrame(df_list_dict, columns=["Algorithm", "Metric", "Distance", "Graph"])
     
     plt.figure("Edge Length Distribution Graph: "+ graph_name)
     sns.violinplot(x="Algorithm", y="Distance", inner="quart", data=df[ df["Metric"] == edge_length_metric_name ])
     plt.xticks(rotation=90)    
     
+    for graph_n, group in df.groupby("Graph"):
+        plt.figure("Stack Reuse Distance Distribution Graph: "+ graph_n)
+        sns.violinplot(x="Algorithm", y="Distance", inner="quart", data=group[ group["Metric"] == stack_reuse_metric_name ])
+        plt.xticks(rotation=90)
     
-    plt.figure("Stack Reuse Distance Distribution Graph: "+ graph_name)
-    sns.violinplot(x="Algorithm", y="Distance", inner="quart", data=df[ df["Metric"] == stack_reuse_metric_name ])
-    plt.xticks(rotation=90)
-    
-    print(df.groupby(["Metric", "Algorithm"]).describe().to_string())
+        print("\nGraph: " + graph_n)
+        print(group.groupby(["Metric", "Algorithm"]).describe().to_string())
     
     
     plt.show()
