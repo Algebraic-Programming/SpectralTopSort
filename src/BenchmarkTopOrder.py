@@ -166,12 +166,12 @@ def main():
     df = pd.DataFrame(df_list_dict, columns=["Algorithm", "Metric", "Distance", "Graph"])
     
     plt.figure("Edge Length Distribution Graph: "+ graph_name)
-    sns.violinplot(x="Algorithm", y="Distance", inner="quart", data=df[ df["Metric"] == edge_length_metric_name ])
-    plt.xticks(rotation=90)    
+    sns.violinplot(x="Algorithm", y="Distance", inner="quart", data=df[ df["Metric"] == edge_length_metric_name ], cut=0)
+    plt.xticks(rotation=90)
     
     for graph_n, group in df.groupby("Graph"):
         plt.figure("Stack Reuse Distance Distribution Graph: "+ graph_n)
-        sns.violinplot(x="Algorithm", y="Distance", inner="quart", data=group[ group["Metric"] == stack_reuse_metric_name ])
+        sns.violinplot(x="Algorithm", y="Distance", inner="quart", data=group[ group["Metric"] == stack_reuse_metric_name ], cut=0)
         plt.xticks(rotation=90)
     
         print("\nGraph: " + graph_n)
