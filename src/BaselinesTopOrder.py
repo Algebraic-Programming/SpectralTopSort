@@ -17,6 +17,7 @@ limitations under the License.
 '''
 
 import collections
+import copy
 import heapq
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -403,6 +404,53 @@ def max_sibling_score_in_window(graph: nx.MultiDiGraph, window_size: int = 5):
     return topOrd
 
 
+def cuthill_Mckee(graph: nx.MultiDiGraph):
+    """
+    Locality reordering based on the Cuthill--Mckee heuristic.
+    """
+    
+    dependency_counter = dict()
+    priority = dict()
+    for v in graph.nodes:
+        dependency_counter[v] = 0
+        priority[v] = graph.number_of_nodes()
+        
+    topOrd = []
+    sources = []
+    queue = []
+    next_queue = []
+    heapq.heapify(sources)
+    heapq.heapify(queue)
+    heapq.heapify(next_queue)
+    
+    for v in graph.nodes:
+        if dependency_counter[v] == graph.in_degree(v):
+            heapq.heappush(sources, (graph.out_degree(v), v))
+            
+    while sources:
+        _, v = heapq.heappop(sources)
+        heapq.heappush(queue, (priority[v], v))
+        
+        while queue or next_queue:
+            if not queue:
+                queue = copy.deepcopy(next_queue)
+                heapq.heapify(queue)
+                next_queue.clear()
+                heapq.heapify(next_queue)
+                
+            _, u = heapq.heappop(queue)
+            topOrd.append(u)
+        
+            for edge in graph.out_edges(u):
+                tgt = edge[1]
+                priority[tgt] = min(priority[tgt], len(topOrd) - 1)
+                dependency_counter[tgt] += 1
+                if dependency_counter[tgt] == graph.in_degree(tgt):
+                    heapq.heappush(next_queue, (priority[tgt], tgt))
+    
+    assert(len(topOrd) == graph.number_of_nodes())
+    return topOrd
+
 
 
 
@@ -543,6 +591,17 @@ def main():
         return 1
     
     plt.figure("Max Windowed Sibling Score Reordered Graph: " + graph_name)
+    plt.spy(nx.to_numpy_array(graph, top_order))
+    
+    
+    
+    top_order = cuthill_Mckee(graph)
+    
+    if (not check_valid_top_order(graph, top_order)):
+        print("Invalid Topological order!")
+        return 1
+    
+    plt.figure("Cuthill--Mckee Reordered Graph: " + graph_name)
     plt.spy(nx.to_numpy_array(graph, top_order))
     
     
