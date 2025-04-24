@@ -382,7 +382,8 @@ def spec_top_order(graph: nx.MultiDiGraph, lp: float = 2.0) -> list[str]:
     if (edge_diff < 0):
         earlier, later = later, earlier
         
-    earlier, later = top_order_fix(graph, earlier, later)
+    # earlier, later = top_order_fix(graph, earlier, later)
+    earlier, later = top_order_small_cut_fix(graph, earlier, later)
     
     for vert in earlier:
         graph.nodes[vert]["part"] = graph.nodes[vert]["part"] + "0"
@@ -458,6 +459,132 @@ def nx_graph_from_upper_triangular_matrix(mat: list[list]) -> nx.MultiDiGraph:
                 graph.add_edge(i,j)
     
     return graph
+
+
+
+def top_order_small_cut_fix(graph: nx.MultiDiGraph, earlier: list[None], later: list[None]) -> list[list[None], list[None]]:
+    vertices = []
+    vertices.extend(earlier)
+    vertices.extend(later)
+    
+    ind_dict = dict()
+    for ind, vert in enumerate(vertices):
+        ind_dict[vert] = ind
+    
+    remaining_parents = [ 0 for v in vertices]
+    priority = [ [0,0,v] for v in vertices ]
+    
+    num_e = len(earlier)
+    for ind in range(num_e, len(vertices)):
+        priority[ind][0] = 1
+    
+    induced_graph = nx.induced_subgraph(graph, vertices)
+    for ind, vert in enumerate(vertices):
+        remaining_parents[ind] = induced_graph.in_degree(vert)
+        
+        for edge in graph.out_edges(vert):
+            src = edge[0] # =vert
+            tgt = edge[1]
+            if graph.nodes[src]["part"] == graph.nodes[tgt]["part"]:
+                if (ind < num_e) and (ind_dict[tgt] >= num_e):
+                    priority[ind][1] += 1
+                if (ind >= num_e) and (ind_dict[tgt] < num_e):
+                    priority[ind][1] -= 1
+            elif graph.nodes[src]["part"] < graph.nodes[tgt]["part"]:
+                priority[ind][1] += 1
+            else:
+                print("Topological order violated")
+                
+        for edge in graph.in_edges(vert):
+            src = edge[0]
+            tgt = edge[1] # =vert
+            if graph.nodes[src]["part"] == graph.nodes[tgt]["part"]:
+                if (ind < num_e) and (ind_dict[src] >= num_e):
+                    priority[ind][1] += 1
+                if (ind >= num_e) and (ind_dict[src] < num_e):
+                    priority[ind][1] -= 1
+            elif graph.nodes[src]["part"] < graph.nodes[tgt]["part"]:
+                priority[ind][1] -= 1
+            else:
+                print("Topological order violated")
+    
+    top_ord = []
+    queue = []
+    heapq.heapify(queue)
+    
+    for ind, val in enumerate(remaining_parents):
+        if val == 0:
+            heapq.heappush(queue, priority[ind])
+            
+    while len(queue) != 0:
+        el_prio, edge_prio, vert = heapq.heappop(queue)
+        top_ord.append(vert)
+        
+        for edge in induced_graph.out_edges(vert):
+            tgt = edge[1]
+            index = ind_dict[tgt]
+            remaining_parents[index] -= 1
+            if remaining_parents[index] == 0:
+                heapq.heappush(queue, priority[index])
+    
+    cut_edges = 0
+    seen_from_earlier = 0
+    seen_from_later = 0
+    usable_cut = False
+    best_cut_place = None
+    best_recorded_cut_edges = None
+    
+    for ind, vert in enumerate(top_ord):
+        cut_edges += induced_graph.out_degree(vert)
+        cut_edges -= induced_graph.in_degree(vert)
+        if ind_dict[vert] < num_e:
+            seen_from_earlier += 1
+        else:
+            seen_from_later += 1
+            
+        if seen_from_later == 0 and ind_dict[top_ord[ind + 1]] >= num_e:
+            usable_cut = True
+            
+        if usable_cut:
+            if best_recorded_cut_edges == None or best_recorded_cut_edges > cut_edges or (best_recorded_cut_edges == cut_edges and abs(best_cut_place - num_e) > abs(len(top_ord) - num_e)):
+                best_recorded_cut_edges = cut_edges
+                best_cut_place = len(top_ord)
+                
+        if seen_from_earlier == num_e:
+            usable_cut = False
+    
+    if best_cut_place == None:
+        best_cut_place = num_e
+    
+    return [top_ord[:best_cut_place], top_ord[best_cut_place:]]
+
+
+
+def spectral_acyclic_bi_partition(graph: nx.MultiDiGraph, lp: float = 2.0) -> list[str]:
+    if (not nx.is_directed_acyclic_graph(graph)):
+        print("Graph is not acyclic")
+        return []
+    
+    nx.set_node_attributes(graph, "", "part")
+    
+    earlier, later = spectral_split(graph, list(graph.nodes), lp, lp)
+    
+    # Swapping if necessary
+    e_set = set(earlier)
+    l_set = set(later)
+    edge_diff = 0
+    for edge in graph.edges:
+        if (edge[0] in e_set) and (edge[1] in l_set):
+            edge_diff += 1
+        if (edge[0] in l_set) and (edge[1] in e_set):
+            edge_diff -= 1
+    
+    if (edge_diff < 0):
+        earlier, later = later, earlier
+        
+    earlier, later = top_order_small_cut_fix(graph, earlier, later)    
+    
+    return [earlier, later]
 
 def main():
     if (len(sys.argv) < 2):
