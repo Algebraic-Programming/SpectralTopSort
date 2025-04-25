@@ -26,12 +26,18 @@ import sys
 from SpectralTopologicalOrdering import nx_graph_from_upper_triangular_matrix
 
 def is_valid_bi_partition(graph: nx.MultiDiGraph, parts: list[set, set]):
-    assert(len(parts) == 2)
+    if not len(parts) == 2:
+        return False
+    
+    if not graph.number_of_nodes == len(parts[0] + parts[1]):
+        return False
+    
     for vert in graph.nodes:
         if (vert in parts[0]) and (vert in parts[1]):
             return False
         if (vert not in parts[0]) and (vert not in parts[1]):
             return False
+        
     return True
 
 def metis_bi_partition(graph: nx.MultiDiGraph):
