@@ -122,6 +122,7 @@ def main():
     algorithms_to_run = {
         "Original": lambda G: sorted([v for v in G.nodes], key=int),
         "Spectal_2.0": functools.partial(spec_top_order_whole, lp=2.0),
+        # "Spectal_1.8": functools.partial(spec_top_order_whole, lp=1.8),
         # "Spectal_1.5": functools.partial(spec_top_order_whole, lp=1.5),
         # "Spectal_1.2": functools.partial(spec_top_order_whole, lp=1.2),
         "BFS": bfs_topOrd,

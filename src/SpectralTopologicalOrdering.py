@@ -224,13 +224,13 @@ def lin_constraint(size: int):
 def nonlin_constraint(lp: float = 2.0):
     
     def constr_func(x: np.ndarray) -> np.ndarray:
-        return np.sum(np.power(np.absolute(x), lp))
+        return np.sum(np.power(np.absolute(x), lp)) / np.size(x)
     
     def constr_jac(x: np.ndarray) -> np.ndarray:
-        return lp * np.multiply( np.power(np.absolute(x), lp - 1.0), np.sign(x) )
+        return lp * np.multiply( np.power(np.absolute(x), lp - 1.0), np.sign(x) ) / np.size(x)
     
     def constr_hess(x: np.ndarray, v: np.ndarray) -> np.ndarray:
-        return v[0] * lp * (lp - 1.0) * np.diag( np.power(np.absolute(x), lp - 2.0) )
+        return v[0] * lp * (lp - 1.0) * np.diag( np.power(np.absolute(x), lp - 2.0) ) / np.size(x)
     
     nonlinear_constraint = scipy.optimize.NonlinearConstraint(constr_func, 1, 1, jac=constr_jac, hess=constr_hess)
     
@@ -254,7 +254,7 @@ def spectral_split(graph: nx.MultiDiGraph, vertex_list: list[None], lq: float = 
     q_iter = 2.0
     
     while True:
-        x0 = x0 / np.power(np.sum(np.power(np.absolute(x0), p_iter)), 1.0 / p_iter)
+        x0 = x0 / np.power(np.sum(np.power(np.absolute(x0), p_iter)), 1.0 / p_iter) * np.power(np.size(x0), 1.0 / p_iter)
         
         opt_func = functools.partial(inhomogenous_quadratic_form, graph=graph, vertex_list=vertex_list, lq=q_iter)
         opt_jac = functools.partial(inhomogenous_quadratic_form_jac, graph=graph, vertex_list=vertex_list, lq=q_iter)
@@ -382,8 +382,8 @@ def spec_top_order(graph: nx.MultiDiGraph, lp: float = 2.0) -> list[str]:
     if (edge_diff < 0):
         earlier, later = later, earlier
         
-    # earlier, later = top_order_fix(graph, earlier, later)
-    earlier, later = top_order_small_cut_fix(graph, earlier, later)
+    earlier, later = top_order_fix(graph, earlier, later)
+    # earlier, later = top_order_small_cut_fix(graph, earlier, later)
     
     for vert in earlier:
         graph.nodes[vert]["part"] = graph.nodes[vert]["part"] + "0"
