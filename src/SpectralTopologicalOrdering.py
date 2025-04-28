@@ -238,7 +238,10 @@ def nonlin_constraint(lp: float = 2.0):
 
 
 
-def spectral_split(graph: nx.MultiDiGraph, vertex_list: list[None], lq: float = 2.0, lp: float = 2.0) -> list[list[None],list[None]]:
+def spectral_split(graph: nx.MultiDiGraph, vertex_list: list[None] = None, lq: float = 2.0, lp: float = 2.0) -> list[list[None],list[None]]:
+    if vertex_list == None:
+        vertex_list = list(graph.nodes)
+    
     assert(lq > 1.0)
     assert(lp > 1.0)    
     
@@ -535,8 +538,14 @@ def top_order_small_cut_fix(graph: nx.MultiDiGraph, earlier: list[None], later: 
     best_recorded_cut_edges = None
     
     for ind, vert in enumerate(top_ord):
-        cut_edges += induced_graph.out_degree(vert)
-        cut_edges -= induced_graph.in_degree(vert)
+        outgoing_edges = induced_graph.out_degree(vert)
+        incoming_edges = induced_graph.in_degree(vert)
+        if induced_graph.has_edge(vert, vert):
+            num_self_loops = len(list(induced_graph.edges[vert][vert](keys=True)))
+            outgoing_edges -= num_self_loops
+            incoming_edges -= num_self_loops
+        cut_edges += outgoing_edges
+        cut_edges -= incoming_edges
         if ind_dict[vert] < num_e:
             seen_from_earlier += 1
         else:
@@ -546,9 +555,9 @@ def top_order_small_cut_fix(graph: nx.MultiDiGraph, earlier: list[None], later: 
             usable_cut = True
             
         if usable_cut:
-            if best_recorded_cut_edges == None or best_recorded_cut_edges > cut_edges or (best_recorded_cut_edges == cut_edges and abs(best_cut_place - num_e) > abs(len(top_ord) - num_e)):
+            if best_recorded_cut_edges == None or best_recorded_cut_edges > cut_edges or (best_recorded_cut_edges == cut_edges and abs(best_cut_place - num_e) > abs(ind + 1 - num_e)):
                 best_recorded_cut_edges = cut_edges
-                best_cut_place = len(top_ord)
+                best_cut_place = ind + 1
                 
         if seen_from_earlier == num_e:
             usable_cut = False
