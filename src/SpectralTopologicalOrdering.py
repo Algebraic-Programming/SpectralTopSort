@@ -284,19 +284,23 @@ def spectral_split(graph: nx.MultiDiGraph, vertex_list: list[None] = None, lq: f
     return [earlier, later]
 
 def FM_split_from_scratch(graph: nx.MultiDiGraph, imbalance: float = 1.3) -> list[list[None],list[None]]:
+    assert(imbalance > 1.0)
+    assert(nx.is_directed_acyclic_graph(graph))
 
-    vertex_list = list(graph.nodes)
+    vertex_list = list(nx.topological_sort(graph))
     
     if len(vertex_list) <= 1:
         return [vertex_list, []]
     
-    num_e = int(len(vertex_list) / 2)
+    num_e = (len(vertex_list) + 1) // 2
     earlier = vertex_list[:num_e]
     later = vertex_list[num_e:]
 
     return directed_fiduccia_mattheyses(graph, earlier, later, int(num_e * imbalance))
 
 def FM_split_improving_spectral(graph: nx.MultiDiGraph, imbalance: float = 1.3) -> list[list[None],list[None]]:
+    assert(imbalance > 1.0)
+    assert(nx.is_directed_acyclic_graph(graph))
 
     vertex_list = list(graph.nodes) 
     
@@ -304,7 +308,7 @@ def FM_split_improving_spectral(graph: nx.MultiDiGraph, imbalance: float = 1.3) 
         return [vertex_list, []]
 
     (earlier, later) = spectral_acyclic_bi_partition(graph, 2.0)
-    weight_limit = max(int(len(vertex_list) / 2 * imbalance), len(earlier), len(later))
+    weight_limit = max(int(((len(vertex_list) + 1) // 2) * imbalance), len(earlier), len(later))
     return directed_fiduccia_mattheyses(graph, earlier, later, weight_limit)
 
 def top_order_fix(graph: nx.MultiDiGraph, earlier: list[None], later: list[None]) -> list[list[None], list[None]]:
