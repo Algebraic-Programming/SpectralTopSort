@@ -107,7 +107,7 @@ def main():
             return 1
         
     elif (graph_file[-3:] == "mtx"):
-        matrix = scipy.io.mmread(graph_file, spmatrix=True)
+        matrix = scipy.io.mmread(graph_file)
         if (len(sys.argv) == 3) and (sys.argv[2] == "--low"):
             matrix = matrix.transpose()
         matrix = scipy.sparse.triu(matrix, k=1)

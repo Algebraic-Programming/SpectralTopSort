@@ -27,7 +27,7 @@ import scipy
 import seaborn as sns
 import sys
 
-from SpectralTopologicalOrdering import spectral_split, spectral_acyclic_bi_partition
+from SpectralTopologicalOrdering import spectral_split, spectral_acyclic_bi_partition, FM_split_from_scratch, FM_split_improving_spectral
 from BaselinesBiPartition import is_valid_bi_partition, spectral_split_classic, metis_bi_partition, nx_graph_from_matrix
 
 def cut_edges_ratio(graph: nx.MultiDiGraph, parts: list[list, list]) -> float:
@@ -94,7 +94,7 @@ def main():
         graph = nx.nx_pydot.read_dot(graph_file)
         
     elif (graph_file[-3:] == "mtx"):
-        matrix = scipy.io.mmread(graph_file, spmatrix=True)
+        matrix = scipy.io.mmread(graph_file)
         if (len(sys.argv) == 3) and (sys.argv[2] == "--low"):
             matrix = matrix.transpose()
             matrix = scipy.sparse.triu(matrix, k=1)
@@ -116,6 +116,8 @@ def main():
         "Spectal_classic_2.0": (functools.partial(spectral_split_classic, lp=2.0), False),
         # "Spectal_classic_1.5": (functools.partial(spectral_split_classic, lp=1.5), False),
         # "Spectal_classic_1.1": (functools.partial(spectral_split_classic, lp=1.1), False),
+        "FM_from_scratch": (functools.partial(FM_split_from_scratch, imbalance=1.3), False),
+        "FM_after_spectral": (functools.partial(FM_split_improving_spectral, imbalance=1.3), False),
         "METIS": (metis_bi_partition, False),
     }
     
