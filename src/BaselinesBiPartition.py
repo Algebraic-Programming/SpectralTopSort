@@ -17,6 +17,7 @@ limitations under the License.
 '''
 
 import functools
+import heapq
 import math
 import metis
 import networkx as nx
@@ -26,7 +27,7 @@ import os
 import scipy
 import sys
 
-from SpectralTopologicalOrdering import lin_constraint, nonlin_constraint
+from SpectralTopologicalOrdering import lin_constraint, nonlin_constraint, spectral_acyclic_bi_partition
 
 def is_valid_bi_partition(graph: nx.MultiDiGraph, parts: list[list, list]) -> bool:
     if not len(parts) == 2:
@@ -186,6 +187,230 @@ def spectral_split_classic(graph: nx.MultiDiGraph, lq: float = 2.0, lp: float = 
             later.append(vertex_list[ind])
     
     return [earlier, later]
+
+def directed_fiduccia_mattheyses(graph: nx.MultiDiGraph, earlier: list[None], later: list[None], max_in_part: int) -> list[list[None], list[None]]:
+    vertices = []
+    vertices.extend(earlier)
+    vertices.extend(later)
+
+    top_ord = []
+    induced_graph = nx.induced_subgraph(graph, vertices)
+
+    ind_dict = dict()
+    for ind, vert in enumerate(vertices):
+        ind_dict[vert] = ind
+
+    max_degree = 0
+    for v in vertices:
+        if induced_graph.in_degree(v) + induced_graph.out_degree(v) > max_degree:
+            max_degree = induced_graph.in_degree(v) + induced_graph.out_degree(v)
+    
+    partition = (earlier, later)
+    nr_passes = 5
+
+    for pass_nr in range(nr_passes):
+        # print(f"Pass {pass_nr} begins.")
+
+        # init
+        vertex_to_part = [0 for v in vertices]
+        locked = [False for v in vertices]
+        obstacles_to_move = [0 for v in vertices]
+        gain = [0 for v in vertices]
+        cost = 0
+        for v in partition[0]:
+            vertex_to_part[ind_dict[v]] = 0
+        for v in partition[1]:
+            vertex_to_part[ind_dict[v]] = 1
+        for v in partition[0]:
+            for edge in induced_graph.out_edges(v):
+                if vertex_to_part[ind_dict[edge[1]]] == 0:
+                    obstacles_to_move[ind_dict[v]] += 1
+                else:
+                    cost +=1
+                    gain[ind_dict[v]] += 1
+            for edge in induced_graph.in_edges(v):
+                gain[ind_dict[v]] -= 1
+                # check partition correctness
+                if vertex_to_part[ind_dict[edge[0]]] == 1:
+                    if pass_nr == 0:
+                        print("ERROR: The partitioning used to initialize FM is not acyclic.")
+                    else:
+                        print("ERROR during FM: the created partition is not acyclic.")
+                    return partition
+        for v in partition[1]:
+            for edge in induced_graph.in_edges(v):
+                if vertex_to_part[ind_dict[edge[1]]] == 1:
+                    obstacles_to_move[ind_dict[v]] += 1
+                else:
+                    cost +=1
+                    gain[ind_dict[v]] += 1
+            for edge in induced_graph.out_edges(v):
+                gain[ind_dict[v]] -= 1
+        cost /= 2
+        gain_bucket_array = [[[] for i in range(2*max_degree+1)] for part in range(2)] 
+        max_gain = [-(max_degree+1) for part in range(2)]
+        for v in vertices:
+            if obstacles_to_move[ind_dict[v]] == 0:
+                gain_bucket_array[vertex_to_part[ind_dict[v]]][gain[ind_dict[v]] + max_degree].append(v)
+                if gain[ind_dict[v]] > max_gain[vertex_to_part[ind_dict[v]]]:
+                    max_gain[vertex_to_part[ind_dict[v]]] = gain[ind_dict[v]]
+
+        best_index = 0
+        best_cost = cost
+        moved_nodes = []
+        left_size = len(partition[0])
+
+        # moves
+        while len(moved_nodes) < len(vertices):
+
+            gain_idx = max(max_gain[0], max_gain[1]) + max_degree
+            to_move = -1
+            while gain_idx >= 0:
+                choose_left = len(gain_bucket_array[0][gain_idx])>0 and len(vertices) - left_size < max_in_part
+                choose_right = len(gain_bucket_array[1][gain_idx])>0 and left_size < max_in_part
+                if choose_left and choose_right:
+                    if left_size >= len(vertices) - left_size:
+                        choose_left = False
+                    else:
+                        choose_right = False
+
+                if choose_left:
+                    to_move = gain_bucket_array[0][gain_idx].pop(len(gain_bucket_array[0][gain_idx])-1)
+                    break
+                elif choose_right:
+                    to_move = gain_bucket_array[1][gain_idx].pop(len(gain_bucket_array[1][gain_idx])-1)
+                    break
+                gain_idx -= 1
+
+            if to_move == -1:
+                break
+            
+            moved_nodes.append(to_move)
+            cost -= gain[ind_dict[to_move]]
+            if cost < best_cost:
+                best_index = len(moved_nodes)
+            locked[ind_dict[to_move]] = True
+            vertex_to_part[ind_dict[to_move]] = 1 - vertex_to_part[ind_dict[to_move]]
+
+            if choose_right:
+                left_size += 1
+                for edge in induced_graph.in_edges(to_move):
+                    source  = edge[0]
+                    if not locked[ind_dict[source]] and obstacles_to_move[ind_dict[source]] == 0:
+                        gain_bucket_array[0][gain[ind_dict[source]] + max_degree].remove(source)
+                    obstacles_to_move[ind_dict[source]] += 1
+                    gain[ind_dict[source]] -= 1
+                for edge in induced_graph.out_edges(to_move):
+                    target = edge[1]
+                    obstacles_to_move[ind_dict[target]] -= 1
+                    gain[ind_dict[target]] += 1
+                    if not locked[ind_dict[target]] and obstacles_to_move[ind_dict[target]] == 0:
+                        gain_bucket_array[1][gain[ind_dict[target]] + max_degree].append(target)
+                        if gain[ind_dict[target]] > max_gain[1]:
+                            max_gain[1] = gain[ind_dict[target]]
+            else:
+                left_size -= 1
+                for edge in induced_graph.out_edges(to_move):
+                    target = edge[1]
+                    if not locked[ind_dict[target]] and obstacles_to_move[ind_dict[target]] == 0:
+                        gain_bucket_array[1][gain[ind_dict[target]] + max_degree].remove(target)
+                    obstacles_to_move[ind_dict[target]] += 1
+                    gain[ind_dict[target]] -= 1
+                for edge in induced_graph.in_edges(to_move):
+                    source = edge[0]
+                    obstacles_to_move[ind_dict[source]] -= 1
+                    gain[ind_dict[source]] += 1
+                    if not locked[ind_dict[source]] and obstacles_to_move[ind_dict[source]] == 0:
+                        gain_bucket_array[0][gain[ind_dict[source]] + max_degree].append(source)
+                        if gain[ind_dict[source]] > max_gain[0]:
+                            max_gain[0] = gain[ind_dict[source]]
+
+
+        # select best
+        best_partition = ([], [])
+        moved = [False for v in vertices]
+
+        for i in range(best_index):
+            moved[ind_dict[moved_nodes[i]]] = True
+        
+        for v in partition[0]:
+            if moved[ind_dict[v]]:
+                best_partition[1].append(v)
+            else:
+                best_partition[0].append(v)
+        for v in partition[1]:
+            if moved[ind_dict[v]]:
+                best_partition[0].append(v)
+            else:
+                best_partition[1].append(v)
+            
+        partition = best_partition
+
+    #print(f"Size of formed partition: {len(partition[0])}, {len(partition[1])} (cf. limit: {max_in_part})")
+
+    # uncomment if reordering is not necessary
+    #return partition
+    
+    # reorder both partitions to more desirable topological order
+    remaining_parents = [ 0 for v in vertices]
+    priority = [ [0,0,v] for v in vertices ]
+    
+    for v in partition[1]:
+        priority[ind_dict[v]][0] = 1
+    
+    for ind, vert in enumerate(vertices):
+        remaining_parents[ind] = induced_graph.in_degree(vert)
+        priority[ind_dict[v]][1] = graph.out_degree(vert) - graph.in_degree(vert)
+    
+    top_ord = []
+    queue = []
+    heapq.heapify(queue)
+    
+    for ind, val in enumerate(remaining_parents):
+        if val == 0:
+            heapq.heappush(queue, priority[ind])
+            
+    while len(queue) != 0:
+        _, _, vert = heapq.heappop(queue)
+        top_ord.append(vert)
+        
+        for edge in induced_graph.out_edges(vert):
+            tgt = edge[1]
+            index = ind_dict[tgt]
+            remaining_parents[index] -= 1
+            if remaining_parents[index] == 0:
+                heapq.heappush(queue, priority[index])
+
+    num_e = len(partition[0])
+    return [top_ord[:num_e], top_ord[num_e:]]
+
+def FM_split_from_scratch(graph: nx.MultiDiGraph, imbalance: float = 1.3) -> list[list[None],list[None]]:
+    assert(imbalance > 1.0)
+    assert(nx.is_directed_acyclic_graph(graph))
+
+    vertex_list = list(nx.topological_sort(graph))
+    
+    if len(vertex_list) <= 1:
+        return [vertex_list, []]
+    
+    num_e = (len(vertex_list) + 1) // 2
+    earlier = vertex_list[:num_e]
+    later = vertex_list[num_e:]
+
+    return directed_fiduccia_mattheyses(graph, earlier, later, int(num_e * imbalance))
+
+def FM_split_improving_spectral(graph: nx.MultiDiGraph, imbalance: float = 1.3) -> list[list[None],list[None]]:
+    assert(imbalance > 1.0)
+    assert(nx.is_directed_acyclic_graph(graph))
+
+    vertex_list = list(graph.nodes) 
+    
+    if len(vertex_list) <= 1:
+        return [vertex_list, []]
+
+    (earlier, later) = spectral_acyclic_bi_partition(graph, 2.0)
+    weight_limit = max(int(((len(vertex_list) + 1) // 2) * imbalance), len(earlier), len(later))
+    return directed_fiduccia_mattheyses(graph, earlier, later, weight_limit)
 
 
 def main():

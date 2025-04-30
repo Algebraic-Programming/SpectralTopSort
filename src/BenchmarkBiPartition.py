@@ -27,8 +27,8 @@ import scipy
 import seaborn as sns
 import sys
 
-from SpectralTopologicalOrdering import spectral_split, spectral_acyclic_bi_partition, FM_split_from_scratch, FM_split_improving_spectral
-from BaselinesBiPartition import is_valid_bi_partition, spectral_split_classic, metis_bi_partition, nx_graph_from_matrix
+from SpectralTopologicalOrdering import spectral_split, spectral_acyclic_bi_partition
+from BaselinesBiPartition import is_valid_bi_partition, spectral_split_classic, metis_bi_partition, nx_graph_from_matrix, FM_split_from_scratch, FM_split_improving_spectral
 
 def cut_edges_ratio(graph: nx.MultiDiGraph, parts: list[list, list]) -> float:
     if graph.number_of_edges() == 0:
