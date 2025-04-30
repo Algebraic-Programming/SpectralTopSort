@@ -17,7 +17,6 @@ limitations under the License.
 '''
 
 import functools
-import heapq
 import math
 import metis
 import networkx as nx
@@ -349,40 +348,7 @@ def directed_fiduccia_mattheyses(graph: nx.MultiDiGraph, earlier: list[None], la
     #print(f"Size of formed partition: {len(partition[0])}, {len(partition[1])} (cf. limit: {max_in_part})")
 
     # uncomment if reordering is not necessary
-    #return partition
-    
-    # reorder both partitions to more desirable topological order
-    remaining_parents = [ 0 for v in vertices]
-    priority = [ [0,0,v] for v in vertices ]
-    
-    for v in partition[1]:
-        priority[ind_dict[v]][0] = 1
-    
-    for ind, vert in enumerate(vertices):
-        remaining_parents[ind] = induced_graph.in_degree(vert)
-        priority[ind_dict[v]][1] = graph.out_degree(vert) - graph.in_degree(vert)
-    
-    top_ord = []
-    queue = []
-    heapq.heapify(queue)
-    
-    for ind, val in enumerate(remaining_parents):
-        if val == 0:
-            heapq.heappush(queue, priority[ind])
-            
-    while len(queue) != 0:
-        _, _, vert = heapq.heappop(queue)
-        top_ord.append(vert)
-        
-        for edge in induced_graph.out_edges(vert):
-            tgt = edge[1]
-            index = ind_dict[tgt]
-            remaining_parents[index] -= 1
-            if remaining_parents[index] == 0:
-                heapq.heappush(queue, priority[index])
-
-    num_e = len(partition[0])
-    return [top_ord[:num_e], top_ord[num_e:]]
+    return partition
 
 def FM_split_from_scratch(graph: nx.MultiDiGraph, imbalance: float = 1.3) -> list[list[None],list[None]]:
     assert(imbalance > 1.0)
