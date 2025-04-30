@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-@author Dimosthenis Pasadakis, Raphael S. Steiner
+@author Pal Andras Papp, Dimosthenis Pasadakis, Raphael S. Steiner
 '''
 
 import functools
