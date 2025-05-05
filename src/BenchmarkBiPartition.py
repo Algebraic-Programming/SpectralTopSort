@@ -104,6 +104,7 @@ def main():
         print("Unknown file format!")
         return 1
     
+    print("Graph: " + graph_name + " Vertices: "+ str(graph.number_of_nodes()) + " Edges: " + str(graph.number_of_edges()))    
     
     # Key: Algorithm Name, Value: (Function, Requires Acyclic)
     algorithms_to_run = {

@@ -117,7 +117,7 @@ def main():
         print("Unknown file format!")
         return 1
     
-    
+    print("Graph: " + graph_name + " Vertices: "+ str(graph.number_of_nodes()) + " Edges: " + str(graph.number_of_edges()))
     
     algorithms_to_run = {
         "Original": lambda G: sorted([v for v in G.nodes], key=int),
