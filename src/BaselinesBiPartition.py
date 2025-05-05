@@ -63,7 +63,10 @@ def nx_graph_from_matrix(mat: list[list]) -> nx.MultiDiGraph:
     return graph
 
 def metis_bi_partition(graph: nx.MultiDiGraph, imbalance: float = 1.3) -> list[list, list]:
-    (edgecuts, split) = metis.part_graph(graph, nparts=2, ubvec=[imbalance], objtype='cut')
+    
+    simpleGraph = nx.Graph( graph.to_undirected() )
+    
+    (edgecuts, split) = metis.part_graph(simpleGraph, nparts=2, ubvec=[imbalance], objtype='cut')
     
     parts = [list(), list()]
     nodes = list(graph.nodes)
