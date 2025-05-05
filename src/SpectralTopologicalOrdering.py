@@ -529,11 +529,32 @@ def top_order_small_cut_fix(graph: nx.MultiDiGraph, earlier: list[None], later: 
             remaining_parents[index] -= 1
             if remaining_parents[index] == 0:
                 heapq.heappush(queue, priority[index])
+
+    
+    first_l_occurrence = None
+    last_e_occurrence = None
+    
+    for ind, vert in enumerate(top_ord):
+        if ind_dict[vert] >= num_e:
+            first_l_occurrence = ind
+            break
+    
+    e_cntr = 0
+    for ind, vert in enumerate(top_ord):
+        e_cntr += 1
+        if e_cntr == num_e:
+            last_e_occurrence = ind
+    
+    # cut after index
+    balance = 0.3
+    min_percent = (1.0 - balance) / 2
+    max_percent = (1.0 + balance) / 2
+    # first_allowed_cut_ind = first_l_occurrence - 1
+    # last_allowed_cut_ind = last_e_occurrence
+    first_allowed_cut_ind = max( min(int(min_percent * graph.number_of_nodes()), num_e - 1), first_l_occurrence - 1 )
+    last_allowed_cut_ind = min( max(int(max_percent * graph.number_of_nodes()), num_e - 1), last_e_occurrence )
     
     cut_edges = 0
-    seen_from_earlier = 0
-    seen_from_later = 0
-    usable_cut = False
     best_cut_place = None
     best_recorded_cut_edges = None
     
@@ -546,21 +567,11 @@ def top_order_small_cut_fix(graph: nx.MultiDiGraph, earlier: list[None], later: 
             incoming_edges -= num_self_loops
         cut_edges += outgoing_edges
         cut_edges -= incoming_edges
-        if ind_dict[vert] < num_e:
-            seen_from_earlier += 1
-        else:
-            seen_from_later += 1
             
-        if seen_from_later == 0 and ind_dict[top_ord[ind + 1]] >= num_e:
-            usable_cut = True
-            
-        if usable_cut:
+        if first_allowed_cut_ind <= ind and ind <= last_allowed_cut_ind:
             if best_recorded_cut_edges == None or best_recorded_cut_edges > cut_edges or (best_recorded_cut_edges == cut_edges and abs(best_cut_place - num_e) > abs(ind + 1 - num_e)):
                 best_recorded_cut_edges = cut_edges
                 best_cut_place = ind + 1
-                
-        if seen_from_earlier == num_e:
-            usable_cut = False
     
     if best_cut_place == None:
         best_cut_place = num_e
