@@ -326,6 +326,9 @@ def directed_fiduccia_mattheyses(graph: nx.MultiDiGraph, earlier: list[None], la
 
 
         # select best
+        if best_index == 0:
+            break
+
         best_partition = ([], [])
         moved = [False for v in vertices]
 
@@ -347,7 +350,6 @@ def directed_fiduccia_mattheyses(graph: nx.MultiDiGraph, earlier: list[None], la
 
     #print(f"Size of formed partition: {len(partition[0])}, {len(partition[1])} (cf. limit: {max_in_part})")
 
-    # uncomment if reordering is not necessary
     return partition
 
 def FM_split_from_scratch(graph: nx.MultiDiGraph, imbalance: float = 1.3) -> list[list[None],list[None]]:
