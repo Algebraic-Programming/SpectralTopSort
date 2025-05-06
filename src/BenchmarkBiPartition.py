@@ -28,7 +28,7 @@ import seaborn as sns
 import sys
 
 from SpectralTopologicalOrdering import spectral_split, spectral_acyclic_bi_partition
-from BaselinesBiPartition import is_valid_bi_partition, spectral_split_classic, metis_bi_partition, nx_graph_from_matrix, FM_split_from_scratch, FM_split_improving_spectral
+from BaselinesBiPartition import is_valid_bi_partition, spectral_split_classic, metis_bi_partition, nx_graph_from_matrix, FM_split_from_scratch, FM_split_improving_spectral, metis_with_acyclic_fix
 
 def cut_edges_ratio(graph: nx.MultiDiGraph, parts: list[list, list]) -> float:
     if graph.number_of_edges() == 0:
@@ -120,6 +120,7 @@ def main():
         "FM_from_scratch": (functools.partial(FM_split_from_scratch, imbalance=1.3), True),
         "FM_after_spectral": (functools.partial(FM_split_improving_spectral, imbalance=1.3), True),
         "METIS": (functools.partial(metis_bi_partition, imbalance=1.3), False),
+        "METIS_with_acyclic_fix": (functools.partial(metis_with_acyclic_fix, imbalance=1.3), True),
     }
     
     graph_acyclic = nx.is_directed_acyclic_graph(graph)

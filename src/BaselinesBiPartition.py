@@ -26,7 +26,7 @@ import os
 import scipy
 import sys
 
-from SpectralTopologicalOrdering import lin_constraint, nonlin_constraint, spectral_acyclic_bi_partition
+from SpectralTopologicalOrdering import lin_constraint, nonlin_constraint, spectral_acyclic_bi_partition, top_order_small_cut_fix
 
 def is_valid_bi_partition(graph: nx.MultiDiGraph, parts: list[list, list]) -> bool:
     if not len(parts) == 2:
@@ -74,6 +74,25 @@ def metis_bi_partition(graph: nx.MultiDiGraph, imbalance: float = 1.3) -> list[l
         parts[part].append(nodes[ind])
 
     return parts
+
+def metis_with_acyclic_fix(graph: nx.MultiDiGraph, imbalance: float = 1.3) -> list[list, list]:
+    earlier, later = metis_bi_partition(graph, imbalance)
+    e_set = set(earlier)
+    l_set = set(later)
+    
+    edge_diff = 0
+    for edge in graph.edges:
+        if (edge[0] in e_set) and (edge[1] in l_set):
+            edge_diff += 1
+        if (edge[0] in l_set) and (edge[1] in e_set):
+            edge_diff -= 1
+    
+    if (edge_diff < 0):
+        earlier, later = later, earlier
+    
+    nx.set_node_attributes(graph, "", "part")
+    
+    return top_order_small_cut_fix(graph, earlier, later)
 
 
 
