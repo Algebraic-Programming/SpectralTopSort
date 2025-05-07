@@ -75,7 +75,18 @@ def compute_stack_distances(graph: nx.MultiDiGraph, topOrder: list) -> list:
     
     return stack_distances
 
-
+def compute_cut_widths(graph: nx.MultiDiGraph, topOrder: list) -> list:
+    cut_widths = []
+    
+    cuts = 0
+    for i in range(len(topOrder)):
+        vert = topOrder[i]
+        cuts += graph.out_degree(vert)
+        cuts -= graph.in_degree(vert)
+        
+        cut_widths.append(cuts)
+    
+    return cut_widths
 
 
 
@@ -138,6 +149,7 @@ def main():
     
     edge_length_metric_name = "Edge Length"
     stack_reuse_metric_name = "Stack Reuse Distance"
+    cut_width_metric_name = "Cut Width"
     
     df_list_dict = []
     
@@ -166,6 +178,16 @@ def main():
                     "Distance": dist,
                     "Graph": graph_name
                 })
+                
+            cut_widths = compute_cut_widths(graph, top_order)
+            for dist in cut_widths:
+                df_list_dict.append({
+                    "Algorithm": alg_name,
+                    "Metric": cut_width_metric_name,
+                    "Distance": dist,
+                    "Graph": graph_name
+                })
+                
         except:
             print("Error during graph " + graph_name + " and algorithm " + alg_name + ".")
         
@@ -179,6 +201,10 @@ def main():
     
         plt.figure("Stack Reuse Distance Distribution Graph: "+ graph_n)
         sns.violinplot(x="Algorithm", y="Distance", inner="quart", data=group[ group["Metric"] == stack_reuse_metric_name ], cut=0)
+        plt.xticks(rotation=90)
+    
+        plt.figure("Cut Width Distribution Graph: "+ graph_n)
+        sns.violinplot(x="Algorithm", y="Distance", inner="quart", data=group[ group["Metric"] == cut_width_metric_name ], cut=0)
         plt.xticks(rotation=90)
     
         print("\nGraph: " + graph_n)
