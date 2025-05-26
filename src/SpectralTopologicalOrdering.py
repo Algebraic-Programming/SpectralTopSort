@@ -541,7 +541,8 @@ def top_order_small_cut_fix(graph: nx.MultiDiGraph, earlier: list[None], later: 
     
     e_cntr = 0
     for ind, vert in enumerate(top_ord):
-        e_cntr += 1
+        if ind_dict[vert] < num_e:
+            e_cntr += 1
         if e_cntr == num_e:
             last_e_occurrence = ind
     
