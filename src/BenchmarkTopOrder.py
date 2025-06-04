@@ -79,7 +79,7 @@ def compute_cut_widths(graph: nx.MultiDiGraph, topOrder: list) -> list:
     cut_widths = []
     
     cuts = 0
-    for i in range(len(topOrder)):
+    for i in range(max(0,len(topOrder)-1)):
         vert = topOrder[i]
         cuts += graph.out_degree(vert)
         cuts -= graph.in_degree(vert)
