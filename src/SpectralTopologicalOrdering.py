@@ -238,7 +238,7 @@ def nonlin_constraint(lp: float = 2.0):
 
 
 
-def spectral_split(graph: nx.MultiDiGraph, vertex_list: list[None] = None, lq: float = 2.0, lp: float = 2.0) -> list[list[None],list[None]]:
+def spectral_split_with_spec_values(graph: nx.MultiDiGraph, vertex_list: list[None] = None, lq: float = 2.0, lp: float = 2.0) -> list[list[None], list[None], dict[None]]:
     if vertex_list == None:
         vertex_list = list(graph.nodes)
     
@@ -263,7 +263,7 @@ def spectral_split(graph: nx.MultiDiGraph, vertex_list: list[None] = None, lq: f
         opt_jac = functools.partial(inhomogenous_quadratic_form_jac, graph=graph, vertex_list=vertex_list, lq=q_iter)
         opt_hess = functools.partial(inhomogenous_quadratic_form_hess, graph=graph, vertex_list=vertex_list, lq=q_iter)
         
-        result = scipy.optimize.minimize(opt_func, x0, method='trust-constr', jac=opt_jac, hess=opt_hess, constraints=[lin_constraint(len(vertex_list)), nonlin_constraint(p_iter)], options={'verbose': 1})
+        result = scipy.optimize.minimize(opt_func, x0, method='trust-constr', jac=opt_jac, hess=opt_hess, constraints=[lin_constraint(len(vertex_list)), nonlin_constraint(p_iter)], options={'verbose': 0})
         
         if (p_iter > lp or q_iter > lq):
             p_iter = max(lp, 1 + (min(p_iter, 1.95) - 1.0)**(1.1))
@@ -275,13 +275,20 @@ def spectral_split(graph: nx.MultiDiGraph, vertex_list: list[None] = None, lq: f
     earlier = []
     later = []
     
+    spec_values = dict()
+    
     for ind, val in enumerate(result.x):
+        spec_values[vertex_list[ind]] = val
         if val > 0:
             earlier.append(vertex_list[ind])
         else:
             later.append(vertex_list[ind])
     
-    return [earlier, later]
+    return [earlier, later, spec_values]
+
+def spectral_split(graph: nx.MultiDiGraph, vertex_list: list[None] = None, lq: float = 2.0, lp: float = 2.0) -> list[list[None],list[None]]:
+    result = spectral_split_with_spec_values(graph, vertex_list, lq, lp)
+    return result[:2]
 
 def top_order_fix(graph: nx.MultiDiGraph, earlier: list[None], later: list[None]) -> list[list[None], list[None]]:
     vertices = []
@@ -339,6 +346,73 @@ def top_order_fix(graph: nx.MultiDiGraph, earlier: list[None], later: list[None]
             
     while len(queue) != 0:
         el_prio, edge_prio, vert = heapq.heappop(queue)
+        top_ord.append(vert)
+        
+        for edge in induced_graph.out_edges(vert):
+            tgt = edge[1]
+            index = ind_dict[tgt]
+            remaining_parents[index] -= 1
+            if remaining_parents[index] == 0:
+                heapq.heappush(queue, priority[index])
+    
+    return [top_ord[:num_e], top_ord[num_e:]]
+
+def top_order_fix_with_spec_values(graph: nx.MultiDiGraph, earlier: list[None], later: list[None], spec_values: dict[None]) -> list[list[None], list[None]]:
+    vertices = []
+    vertices.extend(earlier)
+    vertices.extend(later)
+    
+    ind_dict = dict()
+    for ind, vert in enumerate(vertices):
+        ind_dict[vert] = ind
+    
+    remaining_parents = [ 0 for v in vertices]
+    priority = [[0, -spec_values[v], 0, v] for v in vertices ]
+    
+    num_e = len(earlier)
+    for ind in range(num_e, len(vertices)):
+        priority[ind][0] = 1
+    
+    induced_graph = nx.induced_subgraph(graph, vertices)
+    for ind, vert in enumerate(vertices):
+        remaining_parents[ind] = induced_graph.in_degree(vert)
+        
+        for edge in graph.out_edges(vert):
+            src = edge[0] # =vert
+            tgt = edge[1]
+            if graph.nodes[src]["part"] == graph.nodes[tgt]["part"]:
+                if (ind < num_e) and (ind_dict[tgt] >= num_e):
+                    priority[ind][2] += 1
+                if (ind >= num_e) and (ind_dict[tgt] < num_e):
+                    priority[ind][2] -= 1
+            elif graph.nodes[src]["part"] < graph.nodes[tgt]["part"]:
+                priority[ind][2] += 1
+            else:
+                print("Topological order violated")
+                
+        for edge in graph.in_edges(vert):
+            src = edge[0]
+            tgt = edge[1] # =vert
+            if graph.nodes[src]["part"] == graph.nodes[tgt]["part"]:
+                if (ind < num_e) and (ind_dict[src] >= num_e):
+                    priority[ind][2] += 1
+                if (ind >= num_e) and (ind_dict[src] < num_e):
+                    priority[ind][2] -= 1
+            elif graph.nodes[src]["part"] < graph.nodes[tgt]["part"]:
+                priority[ind][2] -= 1
+            else:
+                print("Topological order violated")
+    
+    top_ord = []
+    queue = []
+    heapq.heapify(queue)
+    
+    for ind, val in enumerate(remaining_parents):
+        if val == 0:
+            heapq.heappush(queue, priority[ind])
+            
+    while len(queue) != 0:
+        el_prio, spec_prio, edge_prio, vert = heapq.heappop(queue)
         top_ord.append(vert)
         
         for edge in induced_graph.out_edges(vert):
@@ -417,6 +491,70 @@ def spec_top_order(graph: nx.MultiDiGraph, lp: float = 2.0) -> list[str]:
     
     return [ item[1] for item in vert_and_parts ]
 
+
+
+
+def spec_top_order_with_spec_values(graph: nx.MultiDiGraph, lp: float = 2.0) -> list[str]:
+    if (not nx.is_directed_acyclic_graph(graph)):
+        print("Graph is not acyclic")
+        return []
+    
+    nx.set_node_attributes(graph, "", "part")
+    
+    # first iteration
+    earlier, later, spec_values = spectral_split_with_spec_values(graph, list(graph.nodes), lp, lp)
+    e_set = set(earlier)
+    l_set = set(later)
+    
+    # Swapping should be needed only for first iteration
+    edge_diff = 0
+    for edge in graph.edges:
+        if (edge[0] in e_set) and (edge[1] in l_set):
+            edge_diff += 1
+        if (edge[0] in l_set) and (edge[1] in e_set):
+            edge_diff -= 1
+    
+    if (edge_diff < 0):
+        earlier, later = later, earlier
+        for key, val in spec_values.items():
+            spec_values[key] = -val
+        
+        
+    earlier, later = top_order_fix_with_spec_values(graph, earlier, later, spec_values)
+    # earlier, later = top_order_small_cut_fix_with_spec_values(graph, earlier, later, spec_values)
+    
+    for vert in earlier:
+        graph.nodes[vert]["part"] = graph.nodes[vert]["part"] + "0"
+        
+    for vert in later:
+        graph.nodes[vert]["part"] = graph.nodes[vert]["part"] + "1"
+    
+    # Recursive iterations
+    processing_part = part_requiring_recursion(graph)
+    while (processing_part != ""):
+        vertices_of_part = [vert for vert in graph.nodes if graph.nodes[vert]["part"] == processing_part ]
+        assert(len(vertices_of_part) > 0)
+        
+        earlier, later, spec_values = spectral_split_with_spec_values(graph, vertices_of_part)
+        earlier, later = top_order_fix_with_spec_values(graph, earlier, later, spec_values)
+    
+        for vert in earlier:
+            graph.nodes[vert]["part"] = graph.nodes[vert]["part"] + "0"
+            
+        for vert in later:
+            graph.nodes[vert]["part"] = graph.nodes[vert]["part"] + "1"
+        
+        processing_part = part_requiring_recursion(graph)
+
+    # Generate Topological order from parts
+    vert_and_parts = [[graph.nodes[vert]["part"], vert] for vert in graph.nodes]
+    vert_and_parts.sort()
+    
+    return [ item[1] for item in vert_and_parts ]
+
+
+
+
 def spec_top_order_whole(graph: nx.MultiDiGraph, lp: float = 2.0) -> list[str]:
     weak_comp = nx.weakly_connected_components(graph)
     
@@ -426,6 +564,18 @@ def spec_top_order_whole(graph: nx.MultiDiGraph, lp: float = 2.0) -> list[str]:
         subgraph = nx.induced_subgraph(graph, comp)
         subgraph = subgraph.copy()
         top_order.extend( spec_top_order(subgraph, lp) )
+        
+    return top_order
+
+def spec_top_order_whole_with_spec_values(graph: nx.MultiDiGraph, lp: float = 2.0) -> list[str]:
+    weak_comp = nx.weakly_connected_components(graph)
+    
+    top_order = []
+    
+    for comp in weak_comp:
+        subgraph = nx.induced_subgraph(graph, comp)
+        subgraph = subgraph.copy()
+        top_order.extend( spec_top_order_with_spec_values(subgraph, lp) )
         
     return top_order
 
@@ -581,6 +731,122 @@ def top_order_small_cut_fix(graph: nx.MultiDiGraph, earlier: list[None], later: 
 
 
 
+def top_order_small_cut_fix_with_spec_values(graph: nx.MultiDiGraph, earlier: list[None], later: list[None], spec_values: dict[None]) -> list[list[None], list[None]]:
+    vertices = []
+    vertices.extend(earlier)
+    vertices.extend(later)
+    
+    ind_dict = dict()
+    for ind, vert in enumerate(vertices):
+        ind_dict[vert] = ind
+    
+    remaining_parents = [ 0 for v in vertices]
+    priority = [[0, -spec_values[v], 0, v] for v in vertices ]
+    
+    num_e = len(earlier)
+    for ind in range(num_e, len(vertices)):
+        priority[ind][0] = 1
+    
+    induced_graph = nx.induced_subgraph(graph, vertices)
+    for ind, vert in enumerate(vertices):
+        remaining_parents[ind] = induced_graph.in_degree(vert)
+        
+        for edge in graph.out_edges(vert):
+            src = edge[0] # =vert
+            tgt = edge[1]
+            if graph.nodes[src]["part"] == graph.nodes[tgt]["part"]:
+                if (ind < num_e) and (ind_dict[tgt] >= num_e):
+                    priority[ind][2] += 1
+                if (ind >= num_e) and (ind_dict[tgt] < num_e):
+                    priority[ind][2] -= 1
+            elif graph.nodes[src]["part"] < graph.nodes[tgt]["part"]:
+                priority[ind][2] += 1
+            else:
+                print("Topological order violated")
+                
+        for edge in graph.in_edges(vert):
+            src = edge[0]
+            tgt = edge[1] # =vert
+            if graph.nodes[src]["part"] == graph.nodes[tgt]["part"]:
+                if (ind < num_e) and (ind_dict[src] >= num_e):
+                    priority[ind][2] += 1
+                if (ind >= num_e) and (ind_dict[src] < num_e):
+                    priority[ind][2] -= 1
+            elif graph.nodes[src]["part"] < graph.nodes[tgt]["part"]:
+                priority[ind][2] -= 1
+            else:
+                print("Topological order violated")
+    
+    top_ord = []
+    queue = []
+    heapq.heapify(queue)
+    
+    for ind, val in enumerate(remaining_parents):
+        if val == 0:
+            heapq.heappush(queue, priority[ind])
+            
+    while len(queue) != 0:
+        el_prio, spec_value, edge_prio, vert = heapq.heappop(queue)
+        top_ord.append(vert)
+        
+        for edge in induced_graph.out_edges(vert):
+            tgt = edge[1]
+            index = ind_dict[tgt]
+            remaining_parents[index] -= 1
+            if remaining_parents[index] == 0:
+                heapq.heappush(queue, priority[index])
+
+    
+    first_l_occurrence = None
+    last_e_occurrence = None
+    
+    for ind, vert in enumerate(top_ord):
+        if ind_dict[vert] >= num_e:
+            first_l_occurrence = ind
+            break
+    
+    e_cntr = 0
+    for ind, vert in enumerate(top_ord):
+        if ind_dict[vert] < num_e:
+            e_cntr += 1
+        if e_cntr == num_e:
+            last_e_occurrence = ind
+    
+    # cut after index
+    balance = 0.3
+    min_percent = (1.0 - balance) / 2
+    max_percent = (1.0 + balance) / 2
+    # first_allowed_cut_ind = first_l_occurrence - 1
+    # last_allowed_cut_ind = last_e_occurrence
+    first_allowed_cut_ind = max( min(int(min_percent * graph.number_of_nodes()), num_e - 1), first_l_occurrence - 1 )
+    last_allowed_cut_ind = min( max(int(max_percent * graph.number_of_nodes()), num_e - 1), last_e_occurrence )
+    
+    cut_edges = 0
+    best_cut_place = None
+    best_recorded_cut_edges = None
+    
+    for ind, vert in enumerate(top_ord):
+        outgoing_edges = induced_graph.out_degree(vert)
+        incoming_edges = induced_graph.in_degree(vert)
+        if induced_graph.has_edge(vert, vert):
+            num_self_loops = len(list(induced_graph.edges[vert][vert](keys=True)))
+            outgoing_edges -= num_self_loops
+            incoming_edges -= num_self_loops
+        cut_edges += outgoing_edges
+        cut_edges -= incoming_edges
+            
+        if first_allowed_cut_ind <= ind and ind <= last_allowed_cut_ind:
+            if best_recorded_cut_edges == None or best_recorded_cut_edges > cut_edges or (best_recorded_cut_edges == cut_edges and abs(best_cut_place - num_e) > abs(ind + 1 - num_e)):
+                best_recorded_cut_edges = cut_edges
+                best_cut_place = ind + 1
+    
+    if best_cut_place == None:
+        best_cut_place = num_e
+    
+    return [top_ord[:best_cut_place], top_ord[best_cut_place:]]
+
+
+
 def spectral_acyclic_bi_partition(graph: nx.MultiDiGraph, lp: float = 2.0) -> list[str]:
     if (not nx.is_directed_acyclic_graph(graph)):
         print("Graph is not acyclic")
@@ -604,6 +870,32 @@ def spectral_acyclic_bi_partition(graph: nx.MultiDiGraph, lp: float = 2.0) -> li
         earlier, later = later, earlier
         
     earlier, later = top_order_small_cut_fix(graph, earlier, later)    
+    
+    return [earlier, later]
+
+def spectral_acyclic_bi_partition_with_spec_values(graph: nx.MultiDiGraph, lp: float = 2.0) -> list[str]:
+    if (not nx.is_directed_acyclic_graph(graph)):
+        print("Graph is not acyclic")
+        return []
+    
+    nx.set_node_attributes(graph, "", "part")
+    
+    earlier, later, spec_values = spectral_split_with_spec_values(graph, list(graph.nodes), lp, lp)
+    
+    # Swapping if necessary
+    e_set = set(earlier)
+    l_set = set(later)
+    edge_diff = 0
+    for edge in graph.edges:
+        if (edge[0] in e_set) and (edge[1] in l_set):
+            edge_diff += 1
+        if (edge[0] in l_set) and (edge[1] in e_set):
+            edge_diff -= 1
+    
+    if (edge_diff < 0):
+        earlier, later = later, earlier
+        
+    earlier, later = top_order_small_cut_fix_with_spec_values(graph, earlier, later, spec_values)    
     
     return [earlier, later]
 
@@ -640,6 +932,7 @@ def main():
         return 1
     
     top_order = spec_top_order_whole(graph, power_constant())
+    # top_order = spec_top_order_whole_with_spec_values(graph, power_constant())
     
     if (not check_valid_top_order(graph, top_order)):
         print("Invalid Topological order!")

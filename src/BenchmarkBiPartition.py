@@ -27,7 +27,7 @@ import scipy
 import seaborn as sns
 import sys
 
-from SpectralTopologicalOrdering import spectral_split, spectral_acyclic_bi_partition
+from SpectralTopologicalOrdering import spectral_split, spectral_acyclic_bi_partition, spectral_acyclic_bi_partition_with_spec_values
 from BaselinesBiPartition import is_valid_bi_partition, spectral_split_classic, metis_bi_partition, nx_graph_from_matrix, FM_split_from_scratch, FM_split_improving_spectral, metis_with_acyclic_fix
 
 def cut_edges_ratio(graph: nx.MultiDiGraph, parts: list[list, list]) -> float:
@@ -114,6 +114,9 @@ def main():
         "Spectal_acyclic_2.0": (functools.partial(spectral_acyclic_bi_partition, lp=2.0), True),
         # "Spectal_acyclic_1.5": (functools.partial(spectral_acyclic_bi_partition, lp=1.5), True),
         # "Spectal_acyclic_1.1": (functools.partial(spectral_acyclic_bi_partition, lp=1.1), True),
+        "Spectal_acyclic_spec_2.0": (functools.partial(spectral_acyclic_bi_partition_with_spec_values, lp=2.0), True),
+        # "Spectal_acyclic_spec_1.5": (functools.partial(spectral_acyclic_bi_partition_with_spec_values, lp=1.5), True),
+        # "Spectal_acyclic_spec_1.1": (functools.partial(spectral_acyclic_bi_partition_with_spec_values, lp=1.1), True),
         "Spectal_classic_2.0": (functools.partial(spectral_split_classic, lp=2.0), False),
         # "Spectal_classic_1.5": (functools.partial(spectral_split_classic, lp=1.5), False),
         # "Spectal_classic_1.1": (functools.partial(spectral_split_classic, lp=1.1), False),

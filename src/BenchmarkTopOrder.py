@@ -27,7 +27,7 @@ import scipy
 import seaborn as sns
 import sys
 
-from SpectralTopologicalOrdering import nx_graph_from_upper_triangular_matrix, check_valid_top_order, spec_top_order_whole
+from SpectralTopologicalOrdering import nx_graph_from_upper_triangular_matrix, check_valid_top_order, spec_top_order_whole, spec_top_order_whole_with_spec_values
 from BaselinesTopOrder import bfs_topOrd, dfs_topOrd, earliest_parent_topOrd, access_pattern_max_topOrd, access_pattern_avg_topOrd, access_pattern_sum_topOrd, sum_edge_length_parent_topOrd, max_sibling_score_in_window, cuthill_Mckee
 
 def compute_edge_lengths(graph: nx.MultiDiGraph, topOrder: list) -> list:
@@ -136,6 +136,10 @@ def main():
         # "Spectal_1.8": functools.partial(spec_top_order_whole, lp=1.8),
         # "Spectal_1.5": functools.partial(spec_top_order_whole, lp=1.5),
         # "Spectal_1.2": functools.partial(spec_top_order_whole, lp=1.2),
+        # "Spectal_spec_2.0": functools.partial(spec_top_order_whole_with_spec_values, lp=2.0),
+        # "Spectal_spec_1.8": functools.partial(spec_top_order_whole_with_spec_values, lp=1.8),
+        # "Spectal_spec_1.5": functools.partial(spec_top_order_whole_with_spec_values, lp=1.5),
+        # "Spectal_spec_1.2": functools.partial(spec_top_order_whole_with_spec_values, lp=1.2),
         "BFS": bfs_topOrd,
         "DFS": dfs_topOrd,
         "Earliest_Parent": earliest_parent_topOrd,

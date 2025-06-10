@@ -187,7 +187,7 @@ def spectral_split_classic(graph: nx.MultiDiGraph, lq: float = 2.0, lp: float = 
         opt_jac = functools.partial(homogenous_quadratic_form_jac, graph=graph, lq=q_iter)
         opt_hess = functools.partial(homogenous_quadratic_form_hess, graph=graph, lq=q_iter)
         
-        result = scipy.optimize.minimize(opt_func, x0, method='trust-constr', jac=opt_jac, hess=opt_hess, constraints=[lin_constraint(graph.number_of_nodes()), nonlin_constraint(p_iter)], options={'verbose': 1})
+        result = scipy.optimize.minimize(opt_func, x0, method='trust-constr', jac=opt_jac, hess=opt_hess, constraints=[lin_constraint(graph.number_of_nodes()), nonlin_constraint(p_iter)], options={'verbose': 0})
         
         if (p_iter > lp or q_iter > lq):
             p_iter = max(lp, 1 + (min(p_iter, 1.95) - 1.0)**(1.1))
