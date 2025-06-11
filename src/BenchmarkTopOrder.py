@@ -159,19 +159,19 @@ def main():
         # "Spectal_spec_1.5": functools.partial(spec_top_order_whole_with_spec_values, lp=1.5),
         # "Spectal_spec_1.2": functools.partial(spec_top_order_whole_with_spec_values, lp=1.2),
         "BFS": bfs_topOrd,
-        "DFS": dfs_topOrd,
-        "Earliest_Parent": earliest_parent_topOrd,
-        "Edge_Length_Sum": sum_edge_length_parent_topOrd,
-        "Access_Pattern_Max": access_pattern_max_topOrd,
-        "Access_Pattern_Sum": access_pattern_sum_topOrd,
-        "Access_Pattern_Avg": access_pattern_avg_topOrd,
-        "Max_Windowed_Sibling": max_sibling_score_in_window,
-        "Cuthill--Mckee": cuthill_Mckee
+        # "DFS": dfs_topOrd,
+        # "Earliest_Parent": earliest_parent_topOrd,
+        # "Edge_Length_Sum": sum_edge_length_parent_topOrd,
+        # "Access_Pattern_Max": access_pattern_max_topOrd,
+        # "Access_Pattern_Sum": access_pattern_sum_topOrd,
+        # "Access_Pattern_Avg": access_pattern_avg_topOrd,
+        "Gorder": functools.partial(max_sibling_score_in_window, window_size=5),
+        "Cuthill–Mckee": cuthill_Mckee
     }
     
-    edge_length_metric_name = "Edge Length"
-    stack_reuse_metric_name = "Stack Reuse Distance"
-    cut_width_metric_name = "Cut Width"
+    edge_length_metric_name = "Edge length"
+    stack_reuse_metric_name = "Reuse distance"
+    cut_width_metric_name = "Edge cut"
     
     df_list_dict = []
     
@@ -237,6 +237,10 @@ def main():
     
     if not isDir:
         plt.show()
+        
+    write_data = False
+    if (write_data):
+        df.to_csv("TopOrder_data.csv")
 
     return 0
 
