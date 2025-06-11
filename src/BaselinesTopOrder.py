@@ -43,11 +43,17 @@ def bfs_topOrd(graph: nx.MultiDiGraph):
     while deque:
         v = deque.popleft()
         topOrd.append(v)
+        
+        ready_children = []
         for edge in graph.out_edges(v):
             tgt = edge[1]
             dependency_counter[tgt] += 1
             if dependency_counter[tgt] == graph.in_degree(tgt):
-                deque.append(tgt)
+                ready_children.append(tgt)
+                
+        ready_children.sort(key=graph.out_degree)
+        for chld in ready_children:
+            deque.append(chld)
 
     assert(len(topOrd) == graph.number_of_nodes())
     return topOrd
