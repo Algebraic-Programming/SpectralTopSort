@@ -209,7 +209,7 @@ def spectral_split_classic(graph: nx.MultiDiGraph, lq: float = 2.0, lp: float = 
     
     return [earlier, later]
 
-def directed_fiduccia_mattheyses(graph: nx.MultiDiGraph, earlier: list[None], later: list[None], max_in_part: int) -> list[list[None], list[None]]:
+def directed_fiduccia_mattheyses(graph: nx.MultiDiGraph, earlier: list[None], later: list[None], max_in_part: int, must_be_acyclic: bool = True) -> list[list[None], list[None]]:
     vertices = []
     vertices.extend(earlier)
     vertices.extend(later)
@@ -246,32 +246,41 @@ def directed_fiduccia_mattheyses(graph: nx.MultiDiGraph, earlier: list[None], la
             for edge in induced_graph.out_edges(v):
                 if vertex_to_part[ind_dict[edge[1]]] == 0:
                     obstacles_to_move[ind_dict[v]] += 1
+                    gain[ind_dict[v]] -= 1
                 else:
                     cost +=1
                     gain[ind_dict[v]] += 1
             for edge in induced_graph.in_edges(v):
-                gain[ind_dict[v]] -= 1
-                # check partition correctness
-                if vertex_to_part[ind_dict[edge[0]]] == 1:
+                if vertex_to_part[ind_dict[edge[0]]] == 0:
+                    gain[ind_dict[v]] -= 1
+                elif must_be_acyclic:
+                    # partition is incorrect
                     if pass_nr == 0:
                         print("ERROR: The partitioning used to initialize FM is not acyclic.")
                     else:
                         print("ERROR during FM: the created partition is not acyclic.")
                     return partition
+                else:
+                    gain[ind_dict[v]] += 1
+
         for v in partition[1]:
             for edge in induced_graph.in_edges(v):
-                if vertex_to_part[ind_dict[edge[1]]] == 1:
+                if vertex_to_part[ind_dict[edge[0]]] == 1:
                     obstacles_to_move[ind_dict[v]] += 1
+                    gain[ind_dict[v]] -= 1
                 else:
-                    cost +=1
                     gain[ind_dict[v]] += 1
             for edge in induced_graph.out_edges(v):
-                gain[ind_dict[v]] -= 1
-        cost /= 2
+                if vertex_to_part[ind_dict[edge[1]]] == 1:
+                    gain[ind_dict[v]] -= 1
+                elif not must_be_acyclic:
+                    gain[ind_dict[v]] += 1
+                    cost +=1
+
         gain_bucket_array = [[[] for i in range(2*max_degree+1)] for part in range(2)] 
         max_gain = [-(max_degree+1) for part in range(2)]
         for v in vertices:
-            if obstacles_to_move[ind_dict[v]] == 0:
+            if obstacles_to_move[ind_dict[v]] == 0 or not must_be_acyclic:
                 gain_bucket_array[vertex_to_part[ind_dict[v]]][gain[ind_dict[v]] + max_degree].append(v)
                 if gain[ind_dict[v]] > max_gain[vertex_to_part[ind_dict[v]]]:
                     max_gain[vertex_to_part[ind_dict[v]]] = gain[ind_dict[v]]
@@ -310,6 +319,7 @@ def directed_fiduccia_mattheyses(graph: nx.MultiDiGraph, earlier: list[None], la
             cost -= gain[ind_dict[to_move]]
             if cost < best_cost:
                 best_index = len(moved_nodes)
+                best_cost = cost
             locked[ind_dict[to_move]] = True
             vertex_to_part[ind_dict[to_move]] = 1 - vertex_to_part[ind_dict[to_move]]
 
@@ -317,34 +327,58 @@ def directed_fiduccia_mattheyses(graph: nx.MultiDiGraph, earlier: list[None], la
                 left_size += 1
                 for edge in induced_graph.in_edges(to_move):
                     source  = edge[0]
-                    if not locked[ind_dict[source]] and obstacles_to_move[ind_dict[source]] == 0:
-                        gain_bucket_array[0][gain[ind_dict[source]] + max_degree].remove(source)
+                    if not locked[ind_dict[source]] and (obstacles_to_move[ind_dict[source]] == 0 or not must_be_acyclic):
+                        gain_bucket_array[vertex_to_part[ind_dict[source]]][gain[ind_dict[source]] + max_degree].remove(source)
                     obstacles_to_move[ind_dict[source]] += 1
-                    gain[ind_dict[source]] -= 1
+                    if vertex_to_part[ind_dict[source]] == 0:
+                        gain[ind_dict[source]] -= 2
+                    else:
+                        gain[ind_dict[source]] += 2
+                    if not locked[ind_dict[source]] and not must_be_acyclic:
+                        gain_bucket_array[vertex_to_part[ind_dict[source]]][gain[ind_dict[source]] + max_degree].append(source)
+                        if gain[ind_dict[source]] > max_gain[vertex_to_part[ind_dict[source]]]:
+                            max_gain[vertex_to_part[ind_dict[source]]] = gain[ind_dict[source]] 
                 for edge in induced_graph.out_edges(to_move):
                     target = edge[1]
+                    if not locked[ind_dict[target]] and not must_be_acyclic:
+                        gain_bucket_array[vertex_to_part[ind_dict[target]]][gain[ind_dict[target]] + max_degree].remove(target)
                     obstacles_to_move[ind_dict[target]] -= 1
-                    gain[ind_dict[target]] += 1
-                    if not locked[ind_dict[target]] and obstacles_to_move[ind_dict[target]] == 0:
-                        gain_bucket_array[1][gain[ind_dict[target]] + max_degree].append(target)
-                        if gain[ind_dict[target]] > max_gain[1]:
-                            max_gain[1] = gain[ind_dict[target]]
+                    if vertex_to_part[ind_dict[target]] == 1:
+                        gain[ind_dict[target]] += 2
+                    else:
+                        gain[ind_dict[target]] -= 2
+                    if not locked[ind_dict[target]] and (obstacles_to_move[ind_dict[target]] == 0 or not must_be_acyclic):
+                        gain_bucket_array[vertex_to_part[ind_dict[target]]][gain[ind_dict[target]] + max_degree].append(target)
+                        if gain[ind_dict[target]] > max_gain[vertex_to_part[ind_dict[target]]]:
+                            max_gain[vertex_to_part[ind_dict[target]]] = gain[ind_dict[target]]
             else:
                 left_size -= 1
                 for edge in induced_graph.out_edges(to_move):
                     target = edge[1]
-                    if not locked[ind_dict[target]] and obstacles_to_move[ind_dict[target]] == 0:
-                        gain_bucket_array[1][gain[ind_dict[target]] + max_degree].remove(target)
+                    if not locked[ind_dict[target]] and (obstacles_to_move[ind_dict[target]] == 0 or not must_be_acyclic):
+                        gain_bucket_array[vertex_to_part[ind_dict[target]]][gain[ind_dict[target]] + max_degree].remove(target)
                     obstacles_to_move[ind_dict[target]] += 1
-                    gain[ind_dict[target]] -= 1
+                    if vertex_to_part[ind_dict[target]] == 1:
+                        gain[ind_dict[target]] -= 2
+                    else:
+                        gain[ind_dict[target]] += 2
+                    if not locked[ind_dict[target]] and not must_be_acyclic:
+                        gain_bucket_array[vertex_to_part[ind_dict[target]]][gain[ind_dict[target]] + max_degree].append(target)
+                        if gain[ind_dict[target]] > max_gain[vertex_to_part[ind_dict[target]]]:
+                            max_gain[vertex_to_part[ind_dict[target]]] = gain[ind_dict[target]] 
                 for edge in induced_graph.in_edges(to_move):
                     source = edge[0]
+                    if not locked[ind_dict[source]] and not must_be_acyclic:
+                        gain_bucket_array[vertex_to_part[ind_dict[source]]][gain[ind_dict[source]] + max_degree].remove(source)
                     obstacles_to_move[ind_dict[source]] -= 1
-                    gain[ind_dict[source]] += 1
-                    if not locked[ind_dict[source]] and obstacles_to_move[ind_dict[source]] == 0:
-                        gain_bucket_array[0][gain[ind_dict[source]] + max_degree].append(source)
-                        if gain[ind_dict[source]] > max_gain[0]:
-                            max_gain[0] = gain[ind_dict[source]]
+                    if vertex_to_part[ind_dict[source]] == 0:
+                        gain[ind_dict[source]] += 2
+                    else:
+                        gain[ind_dict[source]] -= 2
+                    if not locked[ind_dict[source]] and (obstacles_to_move[ind_dict[source]] == 0 or not must_be_acyclic):
+                        gain_bucket_array[vertex_to_part[ind_dict[source]]][gain[ind_dict[source]] + max_degree].append(source)
+                        if gain[ind_dict[source]] > max_gain[vertex_to_part[ind_dict[source]]]:
+                            max_gain[vertex_to_part[ind_dict[source]]] = gain[ind_dict[source]]
 
 
         # select best
