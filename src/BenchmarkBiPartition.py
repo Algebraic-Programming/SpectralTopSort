@@ -148,11 +148,16 @@ def main():
     graph_dict = dict()
     graph_files = []
     
+    name_for_stats_file = ''
+    
     isDir = None
     if os.path.isfile(sys.argv[1]):
         isDir = False
+        name_for_stats_file = os.path.basename(sys.argv[1])
+        name_for_stats_file = name_for_stats_file.split('.')[-2]
     if os.path.isdir(sys.argv[1]):
         isDir = True
+        name_for_stats_file = os.path.basename(os.path.normpath(sys.argv[1]))
     
     if not isDir:
         graph_files.append(sys.argv[1])
@@ -196,7 +201,7 @@ def main():
         "Spectal_classic_2.0": (functools.partial(spectral_split_classic, lp=2.0), False),
         # "Spectal_classic_1.5": (functools.partial(spectral_split_classic, lp=1.5), False),
         # "Spectal_classic_1.1": (functools.partial(spectral_split_classic, lp=1.1), False),
-        "Undirected_FM": (functools.partial(Undirected_FM_from_scratch, imbalance=1.3), False), 
+        "FM_Undirected": (functools.partial(Undirected_FM_from_scratch, imbalance=1.3), False), 
         "FM_from_scratch": (functools.partial(FM_split_from_scratch, imbalance=1.3), True),
         "FM_after_spectral": (functools.partial(FM_split_improving_spectral, imbalance=1.3), True),
         "METIS": (functools.partial(metis_bi_partition, imbalance=1.3), False),
@@ -206,10 +211,13 @@ def main():
     
     df_list_dict = []
     
+    all_graphs_acyclic = True
+    
     for graph_name, graph in graph_dict.items():    
         print("Graph: " + graph_name + " Vertices: "+ str(graph.number_of_nodes()) + " Edges: " + str(graph.number_of_edges()))
     
         graph_acyclic = nx.is_directed_acyclic_graph(graph)
+        all_graphs_acyclic = all_graphs_acyclic and graph_acyclic
     
         for alg_name, val in algorithms_to_run.items():
             try:
@@ -238,6 +246,17 @@ def main():
     for graph_n, group in df.groupby("Graph"):
         print("\nGraph: " + graph_n)
         print(group.to_string())
+        
+        
+    write_data = True
+    if (write_data):
+        data_output_file_name = ''
+        if all_graphs_acyclic:
+            data_output_file_name += 'Acyc'
+        data_output_file_name += 'BiPart_'
+        data_output_file_name += name_for_stats_file
+        data_output_file_name += '.csv'
+        df.to_csv(data_output_file_name)
     
     
     if not isDir:
