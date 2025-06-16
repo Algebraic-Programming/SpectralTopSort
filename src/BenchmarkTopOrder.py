@@ -111,11 +111,17 @@ def main():
     graph_dict = dict()
     graph_files = []
     
+    name_for_stats_file = ''
+    
     isDir = None
     if os.path.isfile(sys.argv[1]):
         isDir = False
+        name_for_stats_file = os.path.basename(sys.argv[1])
+        name_for_stats_file = name_for_stats_file.split('.')[-2]
     if os.path.isdir(sys.argv[1]):
         isDir = True
+        name_for_stats_file = os.path.basename(os.path.normpath(sys.argv[1]))
+
     
     if not isDir:
         graph_files.append(sys.argv[1])
@@ -240,7 +246,7 @@ def main():
         
     write_data = False
     if (write_data):
-        df.to_csv("TopOrder_data.csv")
+        df.to_csv("TopOrder_" + name_for_stats_file + ".csv")
 
     return 0
 
