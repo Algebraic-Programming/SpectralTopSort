@@ -75,7 +75,7 @@ def metis_bi_partition(graph: nx.MultiDiGraph, imbalance: float = 1.3) -> list[l
 
     return parts
 
-def metis_with_acyclic_fix(graph: nx.MultiDiGraph, imbalance: float = 1.3) -> list[list, list]:
+def metis_with_acyclic_fix_with_stable_proportion(graph: nx.MultiDiGraph, imbalance: float = 1.3) -> list[list, list, float]:
     earlier, later = metis_bi_partition(graph, imbalance)
     e_set = set(earlier)
     l_set = set(later)
@@ -92,8 +92,10 @@ def metis_with_acyclic_fix(graph: nx.MultiDiGraph, imbalance: float = 1.3) -> li
     
     nx.set_node_attributes(graph, "", "part")
     
-    earlier, later, _ = top_order_small_cut_fix(graph, earlier, later)
-    return [earlier, later]
+    return top_order_small_cut_fix(graph, earlier, later)
+
+def metis_with_acyclic_fix(graph: nx.MultiDiGraph, imbalance: float = 1.3) -> list[list, list]:
+    return metis_with_acyclic_fix_with_stable_proportion(graph, imbalance)[:2]
 
 
 
@@ -209,6 +211,28 @@ def spectral_split_classic(graph: nx.MultiDiGraph, lq: float = 2.0, lp: float = 
             later.append(vertex_list[ind])
     
     return [earlier, later]
+
+def spectral_split_classic_acyclic_fix_with_stable_proportion(graph: nx.MultiDiGraph, lq: float = 2.0, lp: float = 2.0) -> list[list, list, float]:
+    earlier, later = spectral_split_classic(graph, lq, lp)
+    e_set = set(earlier)
+    l_set = set(later)
+    
+    edge_diff = 0
+    for edge in graph.edges:
+        if (edge[0] in e_set) and (edge[1] in l_set):
+            edge_diff += 1
+        if (edge[0] in l_set) and (edge[1] in e_set):
+            edge_diff -= 1
+    
+    if (edge_diff < 0):
+        earlier, later = later, earlier
+    
+    nx.set_node_attributes(graph, "", "part")
+    
+    return top_order_small_cut_fix(graph, earlier, later)
+
+def spectral_split_classic_acyclic_fix(graph: nx.MultiDiGraph, lq: float = 2.0, lp: float = 2.0) -> list[list, list]:
+    return spectral_split_classic_acyclic_fix_with_stable_proportion(graph, lq, lp)[:2]
 
 def directed_fiduccia_mattheyses(graph: nx.MultiDiGraph, earlier: list[None], later: list[None], max_in_part: int, must_be_acyclic: bool = True) -> list[list[None], list[None]]:
     vertices = []

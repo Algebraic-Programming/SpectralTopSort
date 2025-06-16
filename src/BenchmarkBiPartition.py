@@ -30,7 +30,7 @@ import subprocess
 import time
 
 from SpectralTopologicalOrdering import spectral_split, spectral_acyclic_bi_partition, spectral_acyclic_bi_partition_with_spec_values
-from BaselinesBiPartition import is_valid_bi_partition, spectral_split_classic, metis_bi_partition, nx_graph_from_matrix, FM_split_from_scratch, FM_split_improving_spectral, Undirected_FM_from_scratch, metis_with_acyclic_fix
+from BaselinesBiPartition import is_valid_bi_partition, spectral_split_classic, metis_bi_partition, nx_graph_from_matrix, FM_split_from_scratch, FM_split_improving_spectral, Undirected_FM_from_scratch, metis_with_acyclic_fix, spectral_split_classic_acyclic_fix
 from convert_for_dagP import convert_dot_file
 
 def cut_edges_ratio(graph: nx.MultiDiGraph, parts: list[list, list]) -> float:
@@ -189,18 +189,21 @@ def main():
     
     # Key: Algorithm Name, Value: (Function, Requires Acyclic)
     algorithms_to_run = {
-        "Spectal_directional_2.0": (functools.partial(spectral_split, lp=2.0), False),
-        # "Spectal_directional_1.5": (functools.partial(spectral_split, lp=1.5), False),
-        # "Spectal_directional_1.1": (functools.partial(spectral_split, lp=1.1), False),
-        "Spectal_acyclic_2.0": (functools.partial(spectral_acyclic_bi_partition, lp=2.0), True),
-        # "Spectal_acyclic_1.5": (functools.partial(spectral_acyclic_bi_partition, lp=1.5), True),
-        # "Spectal_acyclic_1.1": (functools.partial(spectral_acyclic_bi_partition, lp=1.1), True),
-        "Spectal_acyclic_spec_2.0": (functools.partial(spectral_acyclic_bi_partition_with_spec_values, lp=2.0), True),
-        # "Spectal_acyclic_spec_1.5": (functools.partial(spectral_acyclic_bi_partition_with_spec_values, lp=1.5), True),
-        # "Spectal_acyclic_spec_1.1": (functools.partial(spectral_acyclic_bi_partition_with_spec_values, lp=1.1), True),
-        "Spectal_classic_2.0": (functools.partial(spectral_split_classic, lp=2.0), False),
-        # "Spectal_classic_1.5": (functools.partial(spectral_split_classic, lp=1.5), False),
-        # "Spectal_classic_1.1": (functools.partial(spectral_split_classic, lp=1.1), False),
+        "Spectal_directed_2.0": (functools.partial(spectral_split, lp=2.0, lq=2.0), False),
+        # "Spectal_directed_1.5": (functools.partial(spectral_split, lp=1.5, lq=1.5), False),
+        # "Spectal_directed_1.1": (functools.partial(spectral_split, lp=1.1, lq=1.1), False),
+        "Spectal_directed_acyclic_2.0": (functools.partial(spectral_acyclic_bi_partition, lp=2.0), True),
+        # "Spectal_directed_acyclic_1.5": (functools.partial(spectral_acyclic_bi_partition, lp=1.5), True),
+        # "Spectal_directed_acyclic_1.1": (functools.partial(spectral_acyclic_bi_partition, lp=1.1), True),
+        # "Spectal_directed_acyclic_spec_2.0": (functools.partial(spectral_acyclic_bi_partition_with_spec_values, lp=2.0), True),
+        # "Spectal_directed_acyclic_spec_1.5": (functools.partial(spectral_acyclic_bi_partition_with_spec_values, lp=1.5), True),
+        # "Spectal_directed_acyclic_spec_1.1": (functools.partial(spectral_acyclic_bi_partition_with_spec_values, lp=1.1), True),
+        "Spectal_classic_2.0": (functools.partial(spectral_split_classic, lp=2.0, lq=2.0), False),
+        # "Spectal_classic_1.5": (functools.partial(spectral_split_classic, lp=1.5, lq=1.5), False),
+        # "Spectal_classic_1.1": (functools.partial(spectral_split_classic, lp=1.1, lq=1.1), False),
+        "Spectal_classic_acyclic_2.0": (functools.partial(spectral_split_classic_acyclic_fix, lp=2.0, lq=2.0), True),
+        # "Spectal_classic_acyclic_1.5": (functools.partial(spectral_split_classic_acyclic_fix, lp=1.5, lq=1.5), True),
+        # "Spectal_classic_acyclic_1.1": (functools.partial(spectral_split_classic_acyclic_fix, lp=1.1, lq=1.1), True),
         "FM_Undirected": (functools.partial(Undirected_FM_from_scratch, imbalance=1.3), False), 
         "FM_from_scratch": (functools.partial(FM_split_from_scratch, imbalance=1.3), True),
         "FM_after_spectral": (functools.partial(FM_split_improving_spectral, imbalance=1.3), True),
