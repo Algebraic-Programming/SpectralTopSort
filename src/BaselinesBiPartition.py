@@ -408,6 +408,22 @@ def directed_fiduccia_mattheyses(graph: nx.MultiDiGraph, earlier: list[None], la
 
     return partition
 
+def Undirected_FM_from_scratch(graph: nx.MultiDiGraph, imbalance: float = 1.3) -> list[list[None],list[None]]:
+    assert(imbalance > 1.0)
+    
+    vertex_list = list(graph.nodes)
+    
+    if len(vertex_list) <= 1:
+        return [vertex_list, []]
+    
+    num_e = (len(vertex_list) + 1) // 2
+    earlier = vertex_list[:num_e]
+    later = vertex_list[num_e:]
+
+    return directed_fiduccia_mattheyses(graph, earlier, later, int(num_e * imbalance), False)
+    
+    
+
 def FM_split_from_scratch(graph: nx.MultiDiGraph, imbalance: float = 1.3) -> list[list[None],list[None]]:
     assert(imbalance > 1.0)
     assert(nx.is_directed_acyclic_graph(graph))
@@ -421,7 +437,7 @@ def FM_split_from_scratch(graph: nx.MultiDiGraph, imbalance: float = 1.3) -> lis
     earlier = vertex_list[:num_e]
     later = vertex_list[num_e:]
 
-    return directed_fiduccia_mattheyses(graph, earlier, later, int(num_e * imbalance))
+    return directed_fiduccia_mattheyses(graph, earlier, later, int(num_e * imbalance), True)
 
 def FM_split_improving_spectral(graph: nx.MultiDiGraph, imbalance: float = 1.3) -> list[list[None],list[None]]:
     assert(imbalance > 1.0)
@@ -434,7 +450,7 @@ def FM_split_improving_spectral(graph: nx.MultiDiGraph, imbalance: float = 1.3) 
 
     (earlier, later) = spectral_acyclic_bi_partition(graph, 2.0)
     weight_limit = max(int(((len(vertex_list) + 1) // 2) * imbalance), len(earlier), len(later))
-    return directed_fiduccia_mattheyses(graph, earlier, later, weight_limit)
+    return directed_fiduccia_mattheyses(graph, earlier, later, weight_limit, True)
 
 
 def main():

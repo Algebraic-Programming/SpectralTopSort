@@ -30,7 +30,7 @@ import subprocess
 import time
 
 from SpectralTopologicalOrdering import spectral_split, spectral_acyclic_bi_partition, spectral_acyclic_bi_partition_with_spec_values
-from BaselinesBiPartition import is_valid_bi_partition, spectral_split_classic, metis_bi_partition, nx_graph_from_matrix, FM_split_from_scratch, FM_split_improving_spectral, metis_with_acyclic_fix
+from BaselinesBiPartition import is_valid_bi_partition, spectral_split_classic, metis_bi_partition, nx_graph_from_matrix, FM_split_from_scratch, FM_split_improving_spectral, Undirected_FM_from_scratch, metis_with_acyclic_fix
 from convert_for_dagP import convert_dot_file
 
 def cut_edges_ratio(graph: nx.MultiDiGraph, parts: list[list, list]) -> float:
@@ -196,6 +196,7 @@ def main():
         "Spectal_classic_2.0": (functools.partial(spectral_split_classic, lp=2.0), False),
         # "Spectal_classic_1.5": (functools.partial(spectral_split_classic, lp=1.5), False),
         # "Spectal_classic_1.1": (functools.partial(spectral_split_classic, lp=1.1), False),
+        "Undirected_FM": (functools.partial(Undirected_FM_from_scratch, imbalance=1.3), False), 
         "FM_from_scratch": (functools.partial(FM_split_from_scratch, imbalance=1.3), True),
         "FM_after_spectral": (functools.partial(FM_split_improving_spectral, imbalance=1.3), True),
         "METIS": (functools.partial(metis_bi_partition, imbalance=1.3), False),
