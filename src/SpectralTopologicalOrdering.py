@@ -460,7 +460,7 @@ def spec_top_order(graph: nx.MultiDiGraph, lp: float = 2.0) -> list[str]:
         earlier, later = later, earlier
         
     earlier, later = top_order_fix(graph, earlier, later)
-    # earlier, later = top_order_small_cut_fix(graph, earlier, later)
+    # earlier, later, _ = top_order_small_cut_fix(graph, earlier, later)
     
     for vert in earlier:
         graph.nodes[vert]["part"] = graph.nodes[vert]["part"] + "0"
@@ -615,7 +615,7 @@ def nx_graph_from_upper_triangular_matrix(mat: list[list]) -> nx.MultiDiGraph:
 
 
 
-def top_order_small_cut_fix(graph: nx.MultiDiGraph, earlier: list[None], later: list[None]) -> list[list[None], list[None]]:
+def top_order_small_cut_fix(graph: nx.MultiDiGraph, earlier: list[None], later: list[None]) -> list[list, list, float]:
     vertices = []
     vertices.extend(earlier)
     vertices.extend(later)
@@ -726,8 +726,16 @@ def top_order_small_cut_fix(graph: nx.MultiDiGraph, earlier: list[None], later: 
     
     if best_cut_place == None:
         best_cut_place = num_e
+        
+    num_correct_part = 0
+    for ind, vert in enumerate(top_ord):
+        if (ind < best_cut_place) and (ind_dict[vert] < num_e):
+            num_correct_part += 1
+        if (ind >= best_cut_place) and (ind_dict[vert] >= num_e):
+            num_correct_part += 1
+    num_correct_part = num_correct_part / len(vertices)
     
-    return [top_ord[:best_cut_place], top_ord[best_cut_place:]]
+    return [top_ord[:best_cut_place], top_ord[best_cut_place:], num_correct_part]
 
 
 
@@ -847,7 +855,7 @@ def top_order_small_cut_fix_with_spec_values(graph: nx.MultiDiGraph, earlier: li
 
 
 
-def spectral_acyclic_bi_partition(graph: nx.MultiDiGraph, lp: float = 2.0) -> list[str]:
+def spectral_acyclic_bi_partition_with_stable_proportion(graph: nx.MultiDiGraph, lp: float = 2.0) -> list[list, list, float]:
     if (not nx.is_directed_acyclic_graph(graph)):
         print("Graph is not acyclic")
         return []
@@ -868,12 +876,15 @@ def spectral_acyclic_bi_partition(graph: nx.MultiDiGraph, lp: float = 2.0) -> li
     
     if (edge_diff < 0):
         earlier, later = later, earlier
-        
-    earlier, later = top_order_small_cut_fix(graph, earlier, later)    
     
-    return [earlier, later]
+    return top_order_small_cut_fix(graph, earlier, later)
 
-def spectral_acyclic_bi_partition_with_spec_values(graph: nx.MultiDiGraph, lp: float = 2.0) -> list[str]:
+def spectral_acyclic_bi_partition(graph: nx.MultiDiGraph, lp: float = 2.0) -> list[list[None], list[None]]:
+    ans = spectral_acyclic_bi_partition_with_stable_proportion(graph, lp)
+    return ans[:2]
+    
+
+def spectral_acyclic_bi_partition_with_spec_values(graph: nx.MultiDiGraph, lp: float = 2.0) -> list[list[None], list[None]]:
     if (not nx.is_directed_acyclic_graph(graph)):
         print("Graph is not acyclic")
         return []

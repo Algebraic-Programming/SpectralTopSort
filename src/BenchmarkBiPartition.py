@@ -248,7 +248,7 @@ def main():
         print(group.to_string())
         
         
-    write_data = True
+    write_data = False
     if (write_data):
         data_output_file_name = ''
         if all_graphs_acyclic:

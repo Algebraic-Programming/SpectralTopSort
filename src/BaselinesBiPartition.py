@@ -92,7 +92,8 @@ def metis_with_acyclic_fix(graph: nx.MultiDiGraph, imbalance: float = 1.3) -> li
     
     nx.set_node_attributes(graph, "", "part")
     
-    return top_order_small_cut_fix(graph, earlier, later)
+    earlier, later, _ = top_order_small_cut_fix(graph, earlier, later)
+    return [earlier, later]
 
 
 
