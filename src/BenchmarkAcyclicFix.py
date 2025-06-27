@@ -83,7 +83,7 @@ def main():
     
     # Key: Base Algorithm Name, Function
     base_algorithms_to_run = {
-        "Spectal_directed_2.0": functools.partial(spectral_split, lp=2.0, lq=2.0),
+        "Spectal_directed_2.0": functools.partial(spectral_split, lp=2.0, lq=2.0, const_dir=0.5),
         # "Spectal_directed_1.5": functools.partial(spectral_split, lp=1.5, lq=1.5),
         # "Spectal_directed_1.1": functools.partial(spectral_split, lp=1.1, lq=1.1),
         "Spectal_classic_2.0": functools.partial(spectral_split_classic, lp=2.0, lq=2.0),

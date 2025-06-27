@@ -166,7 +166,7 @@ def main():
     
     algorithms_to_run = {
         "Original": lambda G: sorted([v for v in G.nodes], key=int),
-        "Spectral_2.0": functools.partial(spec_top_order_whole, lp=2.0),
+        "Spectral_2.0": functools.partial(spec_top_order_whole, lp=2.0, const_dir=0.5),
         # "Spectral_1.8": functools.partial(spec_top_order_whole, lp=1.8),
         # "Spectral_1.5": functools.partial(spec_top_order_whole, lp=1.5),
         # "Spectral_1.2": functools.partial(spec_top_order_whole, lp=1.2),
@@ -174,6 +174,7 @@ def main():
         # "Spectral_spec_1.8": functools.partial(spec_top_order_whole_with_spec_values, lp=1.8),
         # "Spectral_spec_1.5": functools.partial(spec_top_order_whole_with_spec_values, lp=1.5),
         # "Spectral_spec_1.2": functools.partial(spec_top_order_whole_with_spec_values, lp=1.2),
+        "Spectral_classic_2.0": functools.partial(spec_top_order_whole, lp=2.0, const_dir=0.0),
         "BFS": bfs_topOrd,
         # "DFS": dfs_topOrd,
         # "Earliest_Parent": earliest_parent_topOrd,

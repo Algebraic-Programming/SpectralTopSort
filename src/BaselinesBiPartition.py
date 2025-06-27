@@ -476,7 +476,7 @@ def FM_split_improving_spectral(graph: nx.MultiDiGraph, imbalance: float = 1.3) 
     if len(vertex_list) <= 1:
         return [vertex_list, []]
 
-    (earlier, later) = spectral_acyclic_bi_partition(graph, 2.0)
+    (earlier, later) = spectral_acyclic_bi_partition(graph, 2.0, 0.5)
     weight_limit = max(int(((len(vertex_list) + 1) // 2) * imbalance), len(earlier), len(later))
     return directed_fiduccia_mattheyses(graph, earlier, later, weight_limit, True)
 

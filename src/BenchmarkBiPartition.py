@@ -128,10 +128,10 @@ def main():
     
     # Key: Algorithm Name, Value: (Function, Requires Acyclic)
     algorithms_to_run = {
-        "Spectal_directed_2.0": (functools.partial(spectral_split, lp=2.0, lq=2.0), False),
+        "Spectal_directed_2.0": (functools.partial(spectral_split, lp=2.0, lq=2.0, const_dir=0.5), False),
         # "Spectal_directed_1.5": (functools.partial(spectral_split, lp=1.5, lq=1.5), False),
         # "Spectal_directed_1.1": (functools.partial(spectral_split, lp=1.1, lq=1.1), False),
-        "Spectal_directed_acyclic_2.0": (functools.partial(spectral_acyclic_bi_partition, lp=2.0), True),
+        "Spectal_directed_acyclic_2.0": (functools.partial(spectral_acyclic_bi_partition, lp=2.0, const_dir=0.5), True),
         # "Spectal_directed_acyclic_1.5": (functools.partial(spectral_acyclic_bi_partition, lp=1.5), True),
         # "Spectal_directed_acyclic_1.1": (functools.partial(spectral_acyclic_bi_partition, lp=1.1), True),
         # "Spectal_directed_acyclic_spec_2.0": (functools.partial(spectral_acyclic_bi_partition_with_spec_values, lp=2.0), True),

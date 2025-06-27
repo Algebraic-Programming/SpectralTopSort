@@ -36,7 +36,7 @@ def direction_incentive_constant():
 def power_constant():
     return 2.0
 
-def inhomogenous_quadratic_form(x: np.ndarray, graph: nx.MultiDiGraph, vertex_list: list[None], lq: float = 2.0):
+def inhomogenous_quadratic_form(x: np.ndarray, graph: nx.MultiDiGraph, vertex_list: list[None], lq: float = 2.0, const_dir: float = 0.5):
     assert(x.size == len(vertex_list))
     
     outvalue = 0
@@ -86,12 +86,12 @@ def inhomogenous_quadratic_form(x: np.ndarray, graph: nx.MultiDiGraph, vertex_li
     if num_internal_edges > 0:
         direction_incentive = (abs(direction_incentive))**(lq)
         direction_incentive /= (num_internal_edges**(lq - 1.0))
-        direction_incentive *= direction_incentive_constant()
+        direction_incentive *= const_dir
         outvalue -= direction_incentive
         
     return outvalue
 
-def inhomogenous_quadratic_form_jac(x: np.ndarray, graph: nx.MultiDiGraph, vertex_list: list[None], lq: float = 2.0):
+def inhomogenous_quadratic_form_jac(x: np.ndarray, graph: nx.MultiDiGraph, vertex_list: list[None], lq: float = 2.0, const_dir: float = 0.5):
     assert(x.size == len(vertex_list))
     
     outvalue = np.zeros_like(x)
@@ -144,13 +144,13 @@ def inhomogenous_quadratic_form_jac(x: np.ndarray, graph: nx.MultiDiGraph, verte
     if num_internal_edges > 0:
         direction_incentive = math.copysign((abs(direction_incentive))**(lq - 1.0), direction_incentive)
         direction_incentive /= (num_internal_edges**(lq - 1.0))
-        direction_incentive *= direction_incentive_constant()
+        direction_incentive *= const_dir
         outvalue -= (lq * sum_signed_edges * direction_incentive)
         
     return outvalue
 
 
-def inhomogenous_quadratic_form_hess(x: np.ndarray, graph: nx.MultiDiGraph, vertex_list: list[None], lq: float = 2.0):
+def inhomogenous_quadratic_form_hess(x: np.ndarray, graph: nx.MultiDiGraph, vertex_list: list[None], lq: float = 2.0, const_dir: float = 0.5):
     assert(x.size == len(vertex_list))
     
     outvalue = np.zeros((x.size, x.size))
@@ -205,7 +205,7 @@ def inhomogenous_quadratic_form_hess(x: np.ndarray, graph: nx.MultiDiGraph, vert
     if num_internal_edges > 0:
         direction_incentive = (abs(direction_incentive))**(lq - 2.0)
         direction_incentive /= (num_internal_edges**(lq - 1.0))
-        direction_incentive *= direction_incentive_constant()
+        direction_incentive *= const_dir
         
         outer = np.outer(sum_signed_edges, sum_signed_edges)
         outer *= lq * (lq - 1.0)
@@ -238,7 +238,7 @@ def nonlin_constraint(lp: float = 2.0):
 
 
 
-def spectral_split_with_spec_values(graph: nx.MultiDiGraph, vertex_list: list[None] = None, lq: float = 2.0, lp: float = 2.0) -> list[list[None], list[None], dict[None]]:
+def spectral_split_with_spec_values(graph: nx.MultiDiGraph, vertex_list: list[None] = None, lq: float = 2.0, lp: float = 2.0, const_dir: float = 0.5) -> list[list[None], list[None], dict[None]]:
     if vertex_list == None:
         vertex_list = list(graph.nodes)
     
@@ -259,9 +259,9 @@ def spectral_split_with_spec_values(graph: nx.MultiDiGraph, vertex_list: list[No
     while True:
         x0 = x0 / np.power(np.sum(np.power(np.absolute(x0), p_iter)), 1.0 / p_iter) * np.power(np.size(x0), 1.0 / p_iter)
         
-        opt_func = functools.partial(inhomogenous_quadratic_form, graph=graph, vertex_list=vertex_list, lq=q_iter)
-        opt_jac = functools.partial(inhomogenous_quadratic_form_jac, graph=graph, vertex_list=vertex_list, lq=q_iter)
-        opt_hess = functools.partial(inhomogenous_quadratic_form_hess, graph=graph, vertex_list=vertex_list, lq=q_iter)
+        opt_func = functools.partial(inhomogenous_quadratic_form, graph=graph, vertex_list=vertex_list, lq=q_iter, const_dir=const_dir)
+        opt_jac = functools.partial(inhomogenous_quadratic_form_jac, graph=graph, vertex_list=vertex_list, lq=q_iter, const_dir=const_dir)
+        opt_hess = functools.partial(inhomogenous_quadratic_form_hess, graph=graph, vertex_list=vertex_list, lq=q_iter, const_dir=const_dir)
         
         result = scipy.optimize.minimize(opt_func, x0, method='trust-constr', jac=opt_jac, hess=opt_hess, constraints=[lin_constraint(len(vertex_list)), nonlin_constraint(p_iter)], options={'verbose': 0})
         
@@ -286,8 +286,8 @@ def spectral_split_with_spec_values(graph: nx.MultiDiGraph, vertex_list: list[No
     
     return [earlier, later, spec_values]
 
-def spectral_split(graph: nx.MultiDiGraph, vertex_list: list[None] = None, lq: float = 2.0, lp: float = 2.0) -> list[list[None],list[None]]:
-    result = spectral_split_with_spec_values(graph, vertex_list, lq, lp)
+def spectral_split(graph: nx.MultiDiGraph, vertex_list: list[None] = None, lq: float = 2.0, lp: float = 2.0, const_dir: float = 0.5) -> list[list[None],list[None]]:
+    result = spectral_split_with_spec_values(graph, vertex_list, lq, lp, const_dir)
     return result[:2]
 
 def top_order_fix(graph: nx.MultiDiGraph, earlier: list[None], later: list[None]) -> list[list[None], list[None]]:
@@ -436,7 +436,7 @@ def part_requiring_recursion(graph: nx.MultiDiGraph) -> str:
     
     return None
 
-def spec_top_order(graph: nx.MultiDiGraph, lp: float = 2.0) -> list[str]:
+def spec_top_order(graph: nx.MultiDiGraph, lp: float = 2.0, const_dir: float = 0.5) -> list[str]:
     if (not nx.is_directed_acyclic_graph(graph)):
         print("Graph is not acyclic")
         return []
@@ -444,7 +444,7 @@ def spec_top_order(graph: nx.MultiDiGraph, lp: float = 2.0) -> list[str]:
     nx.set_node_attributes(graph, "", "part")
     
     # first iteration
-    earlier, later = spectral_split(graph, list(graph.nodes), lp, lp)
+    earlier, later = spectral_split(graph, list(graph.nodes), lp, lp, const_dir)
     e_set = set(earlier)
     l_set = set(later)
     
@@ -474,7 +474,7 @@ def spec_top_order(graph: nx.MultiDiGraph, lp: float = 2.0) -> list[str]:
         vertices_of_part = [vert for vert in graph.nodes if graph.nodes[vert]["part"] == processing_part ]
         assert(len(vertices_of_part) > 0)
         
-        earlier, later = spectral_split(graph, vertices_of_part)
+        earlier, later = spectral_split(graph, vertices_of_part, lp, lp, const_dir)
         earlier, later = top_order_fix(graph, earlier, later)
     
         for vert in earlier:
@@ -494,7 +494,7 @@ def spec_top_order(graph: nx.MultiDiGraph, lp: float = 2.0) -> list[str]:
 
 
 
-def spec_top_order_with_spec_values(graph: nx.MultiDiGraph, lp: float = 2.0) -> list[str]:
+def spec_top_order_with_spec_values(graph: nx.MultiDiGraph, lp: float = 2.0, const_dir: float = 0.5) -> list[str]:
     if (not nx.is_directed_acyclic_graph(graph)):
         print("Graph is not acyclic")
         return []
@@ -502,7 +502,7 @@ def spec_top_order_with_spec_values(graph: nx.MultiDiGraph, lp: float = 2.0) -> 
     nx.set_node_attributes(graph, "", "part")
     
     # first iteration
-    earlier, later, spec_values = spectral_split_with_spec_values(graph, list(graph.nodes), lp, lp)
+    earlier, later, spec_values = spectral_split_with_spec_values(graph, list(graph.nodes), lp, lp, const_dir)
     e_set = set(earlier)
     l_set = set(later)
     
@@ -535,7 +535,7 @@ def spec_top_order_with_spec_values(graph: nx.MultiDiGraph, lp: float = 2.0) -> 
         vertices_of_part = [vert for vert in graph.nodes if graph.nodes[vert]["part"] == processing_part ]
         assert(len(vertices_of_part) > 0)
         
-        earlier, later, spec_values = spectral_split_with_spec_values(graph, vertices_of_part)
+        earlier, later, spec_values = spectral_split_with_spec_values(graph, vertices_of_part, lp, lp, const_dir)
         earlier, later = top_order_fix_with_spec_values(graph, earlier, later, spec_values)
     
         for vert in earlier:
@@ -555,7 +555,7 @@ def spec_top_order_with_spec_values(graph: nx.MultiDiGraph, lp: float = 2.0) -> 
 
 
 
-def spec_top_order_whole(graph: nx.MultiDiGraph, lp: float = 2.0) -> list[str]:
+def spec_top_order_whole(graph: nx.MultiDiGraph, lp: float = 2.0, const_dir: float = 0.5) -> list[str]:
     weak_comp = nx.weakly_connected_components(graph)
     
     top_order = []
@@ -563,11 +563,11 @@ def spec_top_order_whole(graph: nx.MultiDiGraph, lp: float = 2.0) -> list[str]:
     for comp in weak_comp:
         subgraph = nx.induced_subgraph(graph, comp)
         subgraph = subgraph.copy()
-        top_order.extend( spec_top_order(subgraph, lp) )
+        top_order.extend( spec_top_order(subgraph, lp, const_dir) )
         
     return top_order
 
-def spec_top_order_whole_with_spec_values(graph: nx.MultiDiGraph, lp: float = 2.0) -> list[str]:
+def spec_top_order_whole_with_spec_values(graph: nx.MultiDiGraph, lp: float = 2.0, const_dir: float = 0.5) -> list[str]:
     weak_comp = nx.weakly_connected_components(graph)
     
     top_order = []
@@ -575,7 +575,7 @@ def spec_top_order_whole_with_spec_values(graph: nx.MultiDiGraph, lp: float = 2.
     for comp in weak_comp:
         subgraph = nx.induced_subgraph(graph, comp)
         subgraph = subgraph.copy()
-        top_order.extend( spec_top_order_with_spec_values(subgraph, lp) )
+        top_order.extend( spec_top_order_with_spec_values(subgraph, lp, const_dir) )
         
     return top_order
 
@@ -855,14 +855,14 @@ def top_order_small_cut_fix_with_spec_values(graph: nx.MultiDiGraph, earlier: li
 
 
 
-def spectral_acyclic_bi_partition_with_stable_proportion(graph: nx.MultiDiGraph, lp: float = 2.0) -> list[list, list, float]:
+def spectral_acyclic_bi_partition_with_stable_proportion(graph: nx.MultiDiGraph, lp: float = 2.0, const_dir: float = 0.5) -> list[list, list, float]:
     if (not nx.is_directed_acyclic_graph(graph)):
         print("Graph is not acyclic")
         return []
     
     nx.set_node_attributes(graph, "", "part")
     
-    earlier, later = spectral_split(graph, list(graph.nodes), lp, lp)
+    earlier, later = spectral_split(graph, list(graph.nodes), lp, lp, const_dir)
     
     # Swapping if necessary
     e_set = set(earlier)
@@ -879,19 +879,19 @@ def spectral_acyclic_bi_partition_with_stable_proportion(graph: nx.MultiDiGraph,
     
     return top_order_small_cut_fix(graph, earlier, later)
 
-def spectral_acyclic_bi_partition(graph: nx.MultiDiGraph, lp: float = 2.0) -> list[list[None], list[None]]:
-    ans = spectral_acyclic_bi_partition_with_stable_proportion(graph, lp)
+def spectral_acyclic_bi_partition(graph: nx.MultiDiGraph, lp: float = 2.0, const_dir: float = 0.5) -> list[list[None], list[None]]:
+    ans = spectral_acyclic_bi_partition_with_stable_proportion(graph, lp, const_dir)
     return ans[:2]
     
 
-def spectral_acyclic_bi_partition_with_spec_values(graph: nx.MultiDiGraph, lp: float = 2.0) -> list[list[None], list[None]]:
+def spectral_acyclic_bi_partition_with_spec_values(graph: nx.MultiDiGraph, lp: float = 2.0, const_dir: float = 0.5) -> list[list[None], list[None]]:
     if (not nx.is_directed_acyclic_graph(graph)):
         print("Graph is not acyclic")
         return []
     
     nx.set_node_attributes(graph, "", "part")
     
-    earlier, later, spec_values = spectral_split_with_spec_values(graph, list(graph.nodes), lp, lp)
+    earlier, later, spec_values = spectral_split_with_spec_values(graph, list(graph.nodes), lp, lp, const_dir)
     
     # Swapping if necessary
     e_set = set(earlier)
@@ -942,7 +942,7 @@ def main():
         print("Unknown file format!")
         return 1
     
-    top_order = spec_top_order_whole(graph, power_constant())
+    top_order = spec_top_order_whole(graph, power_constant(), direction_incentive_constant())
     # top_order = spec_top_order_whole_with_spec_values(graph, power_constant())
     
     if (not check_valid_top_order(graph, top_order)):
