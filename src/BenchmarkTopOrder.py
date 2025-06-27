@@ -28,7 +28,8 @@ import seaborn as sns
 import sys
 
 from SpectralTopologicalOrdering import nx_graph_from_upper_triangular_matrix, check_valid_top_order, spec_top_order_whole, spec_top_order_whole_with_spec_values
-from BaselinesTopOrder import bfs_topOrd, dfs_topOrd, earliest_parent_topOrd, access_pattern_max_topOrd, access_pattern_avg_topOrd, access_pattern_sum_topOrd, sum_edge_length_parent_topOrd, max_sibling_score_in_window, cuthill_Mckee
+from BaselinesTopOrder import bfs_topOrd, dfs_topOrd, earliest_parent_topOrd, access_pattern_max_topOrd, access_pattern_avg_topOrd, access_pattern_sum_topOrd, sum_edge_length_parent_topOrd, max_sibling_score_in_window, cuthill_Mckee, recursive_acyclic_bisection
+from BaselinesBiPartition import rmlgp_partition
 
 def compute_edge_lengths(graph: nx.MultiDiGraph, topOrder: list) -> list:
     topOrdInd = dict()
@@ -181,7 +182,8 @@ def main():
         # "Access_Pattern_Sum": access_pattern_sum_topOrd,
         # "Access_Pattern_Avg": access_pattern_avg_topOrd,
         "Gorder": functools.partial(max_sibling_score_in_window, window_size=5),
-        "Cuthill–Mckee": cuthill_Mckee
+        "Cuthill–Mckee": cuthill_Mckee,
+        "rMLGP_recursive": functools.partial(recursive_acyclic_bisection, acyc_bisec_method=functools.partial(rmlgp_partition, binary_path="./rMLGP")), 
     }
     
     edge_length_metric_name = "Edge length"

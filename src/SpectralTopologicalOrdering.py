@@ -434,7 +434,7 @@ def part_requiring_recursion(graph: nx.MultiDiGraph) -> str:
         else:
             parts_set.add(part)
     
-    return ""
+    return None
 
 def spec_top_order(graph: nx.MultiDiGraph, lp: float = 2.0) -> list[str]:
     if (not nx.is_directed_acyclic_graph(graph)):
@@ -470,7 +470,7 @@ def spec_top_order(graph: nx.MultiDiGraph, lp: float = 2.0) -> list[str]:
     
     # Recursive iterations
     processing_part = part_requiring_recursion(graph)
-    while (processing_part != ""):
+    while (processing_part != None):
         vertices_of_part = [vert for vert in graph.nodes if graph.nodes[vert]["part"] == processing_part ]
         assert(len(vertices_of_part) > 0)
         
@@ -531,7 +531,7 @@ def spec_top_order_with_spec_values(graph: nx.MultiDiGraph, lp: float = 2.0) -> 
     
     # Recursive iterations
     processing_part = part_requiring_recursion(graph)
-    while (processing_part != ""):
+    while (processing_part != None):
         vertices_of_part = [vert for vert in graph.nodes if graph.nodes[vert]["part"] == processing_part ]
         assert(len(vertices_of_part) > 0)
         

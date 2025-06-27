@@ -26,7 +26,7 @@ import os
 import scipy
 import sys
 
-from SpectralTopologicalOrdering import nx_graph_from_upper_triangular_matrix, check_valid_top_order
+from SpectralTopologicalOrdering import nx_graph_from_upper_triangular_matrix, check_valid_top_order, part_requiring_recursion
 
 def bfs_topOrd(graph: nx.MultiDiGraph):
     dependency_counter = dict()
@@ -456,6 +456,55 @@ def cuthill_Mckee(graph: nx.MultiDiGraph):
     
     assert(len(topOrd) == graph.number_of_nodes())
     return topOrd
+
+def recursive_acyclic_bisection(graph: nx.MultiDiGraph, acyc_bisec_method):
+    if (not nx.is_directed_acyclic_graph(graph)):
+        print("Graph is not acyclic")
+        return []
+    
+    nx.set_node_attributes(graph, "", "part")
+    
+    # iterations
+    processing_part = part_requiring_recursion(graph)
+    while (processing_part != None):
+        vertices_of_part = [vert for vert in graph.nodes if graph.nodes[vert]["part"] == processing_part ]
+        assert(len(vertices_of_part) > 1)
+        
+        subgraph = nx.induced_subgraph(graph, vertices_of_part)
+        subgraph = subgraph.copy()
+        for vert in subgraph.nodes:
+            del subgraph.nodes[vert]["part"]
+        
+        earlier, later = acyc_bisec_method(subgraph)
+        e_set = set(earlier)
+        l_set = set(later)
+        
+        # Swapping should be needed only for first iteration
+        edge_diff = 0
+        for edge in subgraph.edges:
+            if (edge[0] in e_set) and (edge[1] in l_set):
+                edge_diff += 1
+            if (edge[0] in l_set) and (edge[1] in e_set):
+                edge_diff -= 1
+        
+        if (edge_diff < 0):
+            earlier, later = later, earlier
+            
+        assert(len(earlier)>0 and len(later)>0)
+    
+        for vert in earlier:
+            graph.nodes[vert]["part"] = graph.nodes[vert]["part"] + "0"
+            
+        for vert in later:
+            graph.nodes[vert]["part"] = graph.nodes[vert]["part"] + "1"
+        
+        processing_part = part_requiring_recursion(graph)
+
+    # Generate Topological order from parts
+    vert_and_parts = [[graph.nodes[vert]["part"], vert] for vert in graph.nodes]
+    vert_and_parts.sort()
+    
+    return [ item[1] for item in vert_and_parts ]
 
 
 
