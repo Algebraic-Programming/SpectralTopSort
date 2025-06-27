@@ -487,7 +487,7 @@ def rmlgp_partition(graph: nx.MultiDiGraph, binary_path: str) -> list[list]:
         small_top_ord = list(nx.topological_sort(graph))
         return [small_top_ord[:1], small_top_ord[1:]]
     
-    sleep_time = 0.1 # seconds
+    sleep_time = 0.2 # seconds
     
     temp_file_name = "temp_graph.dot"
     temp_graph_path = os.path.abspath("./" + temp_file_name)
