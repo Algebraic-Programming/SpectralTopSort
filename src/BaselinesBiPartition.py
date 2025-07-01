@@ -486,6 +486,10 @@ def rmlgp_partition(graph: nx.MultiDiGraph, binary_path: str) -> list[list]:
     if graph.number_of_nodes() < 3:
         small_top_ord = list(nx.topological_sort(graph))
         return [small_top_ord[:1], small_top_ord[1:]]
+    if graph.number_of_edges() == 0:
+        n_nodes_halv = graph.number_of_nodes() // 2
+        small_top_ord = list(nx.topological_sort(graph))
+        return [small_top_ord[:n_nodes_halv], small_top_ord[n_nodes_halv:]]
     
     sleep_time = 0.2 # seconds
     
