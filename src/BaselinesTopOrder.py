@@ -473,9 +473,11 @@ def recursive_acyclic_bisection(graph: nx.MultiDiGraph, acyc_bisec_method):
         subgraph = nx.induced_subgraph(graph, vertices_of_part)
         subgraph = subgraph.copy()
         for vert in subgraph.nodes:
-            del subgraph.nodes[vert]["part"]
+            if "part" in subgraph.nodes[vert].keys():
+                del subgraph.nodes[vert]["part"]
         for edge in subgraph.edges:
-            del subgraph.edges[edge]["weight"]
+            if "weight" in subgraph.edges[edge].keys():
+                del subgraph.edges[edge]["weight"]
         
         earlier, later = acyc_bisec_method(subgraph)
         e_set = set(earlier)
