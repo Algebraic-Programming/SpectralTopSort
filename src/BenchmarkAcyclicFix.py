@@ -27,7 +27,7 @@ import scipy
 import seaborn as sns
 import sys
 
-from BenchmarkBiPartition import is_valid_bi_partition, nx_graph_from_matrix, cut_edges_ratio, partition_imbalance, spectral_split_classic, Undirected_FM_from_scratch, metis_bi_partition
+from BenchmarkBiPartition import is_valid_bi_partition, nx_graph_from_matrix, cut_edges_ratio, ncut_edges_ratio, partition_imbalance, spectral_split_classic, Undirected_FM_from_scratch, metis_bi_partition
 from SpectralTopologicalOrdering import spectral_split, top_order_small_cut_fix
 
 
@@ -63,6 +63,7 @@ def main():
         
     for graph_file in graph_files:
         graph_name = graph_file[graph_file.rfind("/") + 1: graph_file.rfind(".")]
+        print(f"Reading {graph_name}.")
         
         graph = None
         if (graph_file[-3:] == "dot"):
@@ -73,24 +74,50 @@ def main():
             if (len(sys.argv) == 3) and (sys.argv[2] == "--low"):
                 matrix = matrix.transpose()
                 matrix = scipy.sparse.triu(matrix, k=1)
+            if (len(sys.argv) == 3) and (sys.argv[2] == "--acyc"):
+                upper_matrix = scipy.sparse.triu(matrix, k=1)
+                top_graph = nx_graph_from_matrix(upper_matrix.toarray())
+                
+                lower_matrix = scipy.sparse.tril(matrix, k=-1)
+                lower_matrix = lower_matrix.transpose()
+                low_graph = nx_graph_from_matrix(lower_matrix.toarray())
+                
+                if top_graph.number_of_edges() >= low_graph.number_of_edges():
+                    print("Taking top part of matrix")
+                    matrix = upper_matrix
+                else:
+                    print("Taking bottom part of matrix")
+                    matrix = lower_matrix
+            
             graph = nx_graph_from_matrix(matrix.toarray())
             
         else:
             print("Unknown file format!" + " (" + graph_file + ")")
             continue
         
+        if not nx.is_weakly_connected(graph):
+            print(f"Graph {graph_name} is not weakly connected.\nReplacing it with largest weakly connected component!\n")
+            temp_graph = None
+            
+            weak_comp = nx.weakly_connected_components(graph)
+            for comp in weak_comp:
+                if temp_graph == None or len(comp) > temp_graph.number_of_nodes():
+                    temp_graph = nx.induced_subgraph(graph, comp).copy()
+            
+            graph = temp_graph
+        
         graph_dict[graph_name] = graph
     
     # Key: Base Algorithm Name, Function
     base_algorithms_to_run = {
-        "Spectal_directed_2.0": functools.partial(spectral_split, lp=2.0, lq=2.0, const_dir=0.5),
+        "Spectral_directed_2.0": functools.partial(spectral_split, lp=2.0, lq=2.0, const_dir=0.5),
         # "Spectal_directed_1.5": functools.partial(spectral_split, lp=1.5, lq=1.5),
         # "Spectal_directed_1.1": functools.partial(spectral_split, lp=1.1, lq=1.1),
-        "Spectal_classic_2.0": functools.partial(spectral_split_classic, lp=2.0, lq=2.0),
+        "Spectral_classic_2.0": functools.partial(spectral_split_classic, lp=2.0, lq=2.0),
         # "Spectal_classic_1.5": functools.partial(spectral_split_classic, lp=1.5, lq=1.5),
         # "Spectal_classic_1.1": functools.partial(spectral_split_classic, lp=1.1, lq=1.1),
-        "FM_Undirected": functools.partial(Undirected_FM_from_scratch, imbalance=1.3), 
-        "METIS": functools.partial(metis_bi_partition, imbalance=1.3),
+        # "FM_Undirected": functools.partial(Undirected_FM_from_scratch, imbalance=1.3), 
+        # "METIS": functools.partial(metis_bi_partition, imbalance=1.3),
     }
     
     # Key: AcyclicFix Algorithm Name, Function
@@ -131,6 +158,7 @@ def main():
                     continue
                 
                 original_cut_edge_ratio = cut_edges_ratio(graph, parts)
+                original_ncut_edge_ratio = ncut_edges_ratio(graph, parts)
                 original_weight_imbalance = partition_imbalance(graph, parts)
                 
                 for fix_alg_name, fix_alg_func in fix_algorithms_to_run.items():
@@ -145,6 +173,8 @@ def main():
                             "Fix Algorithm": fix_alg_name,
                             "Cut Ratio Before Fix": original_cut_edge_ratio,
                             "Cut Ratio After Fix": cut_edges_ratio(graph, parts_fixed),
+                            "NCut Ratio Before Fix": original_ncut_edge_ratio,
+                            "NCut Ratio After Fix": ncut_edges_ratio(graph, parts_fixed),
                             "Weight Imbalance Before Fix": original_weight_imbalance,
                             "Weight Imbalance After Fix": partition_imbalance(graph, parts_fixed),
                             "Correctly Assigned": correctly_assigned,
@@ -164,6 +194,8 @@ def main():
                                                 "Fix Algorithm",
                                                 "Cut Ratio Before Fix",
                                                 "Cut Ratio After Fix",
+                                                "NCut Ratio Before Fix",
+                                                "NCut Ratio After Fix",
                                                 "Weight Imbalance Before Fix",
                                                 "Weight Imbalance After Fix",
                                                 "Correctly Assigned",
