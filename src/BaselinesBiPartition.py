@@ -31,7 +31,9 @@ import time
 from SpectralTopologicalOrdering import lin_constraint, nonlin_constraint, spectral_acyclic_bi_partition, top_order_small_cut_fix
 from convert_for_dagP import convert_dot_file
 
-def is_valid_bi_partition(graph: nx.MultiDiGraph, parts: list[list, list]) -> bool:
+
+
+def is_valid_bi_partition(graph: nx.MultiDiGraph, parts: list) -> bool:
     if not len(parts) == 2:
         return False
     
@@ -49,7 +51,7 @@ def is_valid_bi_partition(graph: nx.MultiDiGraph, parts: list[list, list]) -> bo
         
     return True
 
-def nx_graph_from_matrix(mat: list[list]) -> nx.MultiDiGraph:
+def nx_graph_from_matrix(mat: list) -> nx.MultiDiGraph:
     assert(len(mat) == len(mat[0]))
     mat_size = len(mat)
     
@@ -65,7 +67,7 @@ def nx_graph_from_matrix(mat: list[list]) -> nx.MultiDiGraph:
     
     return graph
 
-def metis_bi_partition(graph: nx.MultiDiGraph, imbalance: float = 1.3) -> list[list, list]:
+def metis_bi_partition(graph: nx.MultiDiGraph, imbalance: float = 1.3) -> list:
     
     simpleGraph = nx.Graph( graph.to_undirected() )
     
@@ -78,7 +80,7 @@ def metis_bi_partition(graph: nx.MultiDiGraph, imbalance: float = 1.3) -> list[l
 
     return parts
 
-def metis_with_acyclic_fix_with_stable_proportion(graph: nx.MultiDiGraph, imbalance: float = 1.3) -> list[list, list, float]:
+def metis_with_acyclic_fix_with_stable_proportion(graph: nx.MultiDiGraph, imbalance: float = 1.3) -> list:
     earlier, later = metis_bi_partition(graph, imbalance)
     e_set = set(earlier)
     l_set = set(later)
@@ -97,7 +99,7 @@ def metis_with_acyclic_fix_with_stable_proportion(graph: nx.MultiDiGraph, imbala
     
     return top_order_small_cut_fix(graph, earlier, later)
 
-def metis_with_acyclic_fix(graph: nx.MultiDiGraph, imbalance: float = 1.3) -> list[list, list]:
+def metis_with_acyclic_fix(graph: nx.MultiDiGraph, imbalance: float = 1.3) -> list:
     return metis_with_acyclic_fix_with_stable_proportion(graph, imbalance)[:2]
 
 
@@ -176,7 +178,7 @@ def homogenous_quadratic_form_hess(x: np.ndarray, graph: nx.MultiDiGraph, lq: fl
 
 
 
-def spectral_split_classic(graph: nx.MultiDiGraph, lq: float = 2.0, lp: float = 2.0) -> list[list[None],list[None]]:
+def spectral_split_classic(graph: nx.MultiDiGraph, lq: float = 2.0, lp: float = 2.0) -> list:
     assert(lq > 1.0)
     assert(lp > 1.0)    
     
@@ -215,7 +217,7 @@ def spectral_split_classic(graph: nx.MultiDiGraph, lq: float = 2.0, lp: float = 
     
     return [earlier, later]
 
-def spectral_split_classic_acyclic_fix_with_stable_proportion(graph: nx.MultiDiGraph, lq: float = 2.0, lp: float = 2.0) -> list[list, list, float]:
+def spectral_split_classic_acyclic_fix_with_stable_proportion(graph: nx.MultiDiGraph, lq: float = 2.0, lp: float = 2.0) -> list:
     earlier, later = spectral_split_classic(graph, lq, lp)
     e_set = set(earlier)
     l_set = set(later)
@@ -234,10 +236,10 @@ def spectral_split_classic_acyclic_fix_with_stable_proportion(graph: nx.MultiDiG
     
     return top_order_small_cut_fix(graph, earlier, later)
 
-def spectral_split_classic_acyclic_fix(graph: nx.MultiDiGraph, lq: float = 2.0, lp: float = 2.0) -> list[list, list]:
+def spectral_split_classic_acyclic_fix(graph: nx.MultiDiGraph, lq: float = 2.0, lp: float = 2.0) -> list:
     return spectral_split_classic_acyclic_fix_with_stable_proportion(graph, lq, lp)[:2]
 
-def directed_fiduccia_mattheyses(graph: nx.MultiDiGraph, earlier: list[None], later: list[None], max_in_part: int, must_be_acyclic: bool = True) -> list[list[None], list[None]]:
+def directed_fiduccia_mattheyses(graph: nx.MultiDiGraph, earlier: list, later: list, max_in_part: int, must_be_acyclic: bool = True) -> list:
     vertices = []
     vertices.extend(earlier)
     vertices.extend(later)
@@ -436,7 +438,7 @@ def directed_fiduccia_mattheyses(graph: nx.MultiDiGraph, earlier: list[None], la
 
     return partition
 
-def Undirected_FM_from_scratch(graph: nx.MultiDiGraph, imbalance: float = 1.3) -> list[list[None],list[None]]:
+def Undirected_FM_from_scratch(graph: nx.MultiDiGraph, imbalance: float = 1.3) -> list:
     assert(imbalance > 1.0)
     
     vertex_list = list(graph.nodes)
@@ -452,7 +454,7 @@ def Undirected_FM_from_scratch(graph: nx.MultiDiGraph, imbalance: float = 1.3) -
     
     
 
-def FM_split_from_scratch(graph: nx.MultiDiGraph, imbalance: float = 1.3) -> list[list[None],list[None]]:
+def FM_split_from_scratch(graph: nx.MultiDiGraph, imbalance: float = 1.3) -> list:
     assert(imbalance > 1.0)
     assert(nx.is_directed_acyclic_graph(graph))
 
@@ -467,7 +469,7 @@ def FM_split_from_scratch(graph: nx.MultiDiGraph, imbalance: float = 1.3) -> lis
 
     return directed_fiduccia_mattheyses(graph, earlier, later, int(num_e * imbalance), True)
 
-def FM_split_improving_spectral(graph: nx.MultiDiGraph, imbalance: float = 1.3) -> list[list[None],list[None]]:
+def FM_split_improving_spectral(graph: nx.MultiDiGraph, imbalance: float = 1.3) -> list:
     assert(imbalance > 1.0)
     assert(nx.is_directed_acyclic_graph(graph))
 
@@ -482,7 +484,7 @@ def FM_split_improving_spectral(graph: nx.MultiDiGraph, imbalance: float = 1.3) 
 
 
 # Wrapper to run rMLGP
-def rmlgp_partition(graph: nx.MultiDiGraph, binary_path: str) -> list[list]:
+def rmlgp_partition(graph: nx.MultiDiGraph, binary_path: str) -> list:
     if graph.number_of_nodes() < 3:
         small_top_ord = list(nx.topological_sort(graph))
         return [small_top_ord[:1], small_top_ord[1:]]
@@ -495,7 +497,17 @@ def rmlgp_partition(graph: nx.MultiDiGraph, binary_path: str) -> list[list]:
     
     temp_file_name = "temp_graph.dot"
     temp_graph_path = os.path.abspath("./" + temp_file_name)
-    nx.drawing.nx_agraph.write_dot(graph, temp_graph_path)
+    
+    plain_graph_copy = graph.copy()
+    for vert in plain_graph_copy.nodes:
+        if "part" in plain_graph_copy.nodes[vert].keys():
+            del plain_graph_copy.nodes[vert]["part"]
+    for edge in plain_graph_copy.edges:
+        if "weight" in plain_graph_copy.edges[edge].keys():
+            del plain_graph_copy.edges[edge]["weight"]
+    
+    
+    nx.drawing.nx_agraph.write_dot(plain_graph_copy, temp_graph_path)
     time.sleep(sleep_time)
     
     # graph_path = os.path.abspath(graph_file)
@@ -534,7 +546,7 @@ def rmlgp_partition(graph: nx.MultiDiGraph, binary_path: str) -> list[list]:
 
     # Sort node list to match assignment order
     # graph = nx.nx_pydot.read_dot(graph_file)
-    nodes = sorted(graph.nodes(), key=lambda x: int(x))
+    nodes = sorted(graph.nodes, key=lambda x: int(x))
 
     part_0 = [nodes[i] for i, val in enumerate(assignments) if val == 0]
     part_1 = [nodes[i] for i, val in enumerate(assignments) if val == 1]
