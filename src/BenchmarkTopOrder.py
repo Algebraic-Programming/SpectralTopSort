@@ -143,6 +143,7 @@ def main():
         
     for graph_file in graph_files:
         graph_name = graph_file[graph_file.rfind("/") + 1: graph_file.rfind(".")]
+        print(f"Reading {graph_name}.")
         
         graph = None
         if (graph_file[-3:] == "dot"):
@@ -155,6 +156,21 @@ def main():
             matrix = scipy.io.mmread(graph_file)
             if (len(sys.argv) == 3) and (sys.argv[2] == "--low"):
                 matrix = matrix.transpose()
+            if (len(sys.argv) == 3) and (sys.argv[2] == "--acyc"):
+                upper_matrix = scipy.sparse.triu(matrix, k=1)
+                top_graph = nx_graph_from_upper_triangular_matrix(upper_matrix.toarray())
+                
+                lower_matrix = scipy.sparse.tril(matrix, k=-1)
+                lower_matrix = lower_matrix.transpose()
+                low_graph = nx_graph_from_upper_triangular_matrix(lower_matrix.toarray())
+                
+                if top_graph.number_of_edges() >= low_graph.number_of_edges():
+                    print("Taking top part of matrix")
+                    matrix = upper_matrix
+                else:
+                    print("Taking bottom part of matrix")
+                    matrix = lower_matrix
+                    
             matrix = scipy.sparse.triu(matrix, k=1)
             graph = nx_graph_from_upper_triangular_matrix(matrix.toarray())
             
@@ -165,7 +181,7 @@ def main():
         graph_dict[graph_name] = graph
     
     algorithms_to_run = {
-        "Original": lambda G: sorted([v for v in G.nodes], key=int),
+        # "Original": lambda G: sorted([v for v in G.nodes], key=int),
         "Spectral_2.0": functools.partial(spec_top_order_whole, lp=2.0, const_dir=0.5),
         # "Spectral_1.8": functools.partial(spec_top_order_whole, lp=1.8),
         # "Spectral_1.5": functools.partial(spec_top_order_whole, lp=1.5),
@@ -184,7 +200,7 @@ def main():
         # "Access_Pattern_Avg": access_pattern_avg_topOrd,
         "Gorder": functools.partial(max_sibling_score_in_window, window_size=5),
         "Cuthill–Mckee": cuthill_Mckee,
-        "rMLGP_recursive": functools.partial(recursive_acyclic_bisection, acyc_bisec_method=functools.partial(rmlgp_partition, binary_path="./rMLGP")), 
+        # "rMLGP_recursive": functools.partial(recursive_acyclic_bisection, acyc_bisec_method=functools.partial(rmlgp_partition, binary_path="./rMLGP")), 
     }
     
     edge_length_metric_name = "Edge length"
@@ -230,6 +246,22 @@ def main():
                         "Distance": dist,
                         "Graph": graph_name
                     })
+                    
+                plot_graphs_after_reordering = False
+                
+                if plot_graphs_after_reordering:
+                    plt.figure(graph_name + " --- " + alg_name)
+                    
+                    for vert in graph_copy.nodes:
+                        if "part" in graph_copy.nodes[vert].keys():
+                            del graph_copy.nodes[vert]["part"]
+                    for edge in graph_copy.edges:
+                        if "weight" in graph_copy.edges[edge].keys():
+                            del graph_copy.edges[edge]["weight"]
+                    
+                    
+                    plt.spy(nx.to_numpy_array(graph_copy, top_order), marker=".", markersize=4)
+                    # plt.savefig(graph_name + "_" + alg_name + ".eps")
                     
             except:
                 print("Error during graph " + graph_name + " and algorithm " + alg_name + ".")

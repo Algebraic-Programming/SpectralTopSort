@@ -36,7 +36,7 @@ def direction_incentive_constant():
 def power_constant():
     return 2.0
 
-def inhomogenous_quadratic_form(x: np.ndarray, graph: nx.MultiDiGraph, vertex_list: list[None], lq: float = 2.0, const_dir: float = 0.5):
+def inhomogenous_quadratic_form(x: np.ndarray, graph: nx.MultiDiGraph, vertex_list: list, lq: float = 2.0, const_dir: float = 0.5):
     assert(x.size == len(vertex_list))
     
     outvalue = 0
@@ -91,7 +91,7 @@ def inhomogenous_quadratic_form(x: np.ndarray, graph: nx.MultiDiGraph, vertex_li
         
     return outvalue
 
-def inhomogenous_quadratic_form_jac(x: np.ndarray, graph: nx.MultiDiGraph, vertex_list: list[None], lq: float = 2.0, const_dir: float = 0.5):
+def inhomogenous_quadratic_form_jac(x: np.ndarray, graph: nx.MultiDiGraph, vertex_list: list, lq: float = 2.0, const_dir: float = 0.5):
     assert(x.size == len(vertex_list))
     
     outvalue = np.zeros_like(x)
@@ -150,7 +150,7 @@ def inhomogenous_quadratic_form_jac(x: np.ndarray, graph: nx.MultiDiGraph, verte
     return outvalue
 
 
-def inhomogenous_quadratic_form_hess(x: np.ndarray, graph: nx.MultiDiGraph, vertex_list: list[None], lq: float = 2.0, const_dir: float = 0.5):
+def inhomogenous_quadratic_form_hess(x: np.ndarray, graph: nx.MultiDiGraph, vertex_list: list, lq: float = 2.0, const_dir: float = 0.5):
     assert(x.size == len(vertex_list))
     
     outvalue = np.zeros((x.size, x.size))
@@ -238,7 +238,7 @@ def nonlin_constraint(lp: float = 2.0):
 
 
 
-def spectral_split_with_spec_values(graph: nx.MultiDiGraph, vertex_list: list[None] = None, lq: float = 2.0, lp: float = 2.0, const_dir: float = 0.5) -> list[list[None], list[None], dict[None]]:
+def spectral_split_with_spec_values(graph: nx.MultiDiGraph, vertex_list: list = None, lq: float = 2.0, lp: float = 2.0, const_dir: float = 0.5) -> list:
     if vertex_list == None:
         vertex_list = list(graph.nodes)
     
@@ -286,11 +286,11 @@ def spectral_split_with_spec_values(graph: nx.MultiDiGraph, vertex_list: list[No
     
     return [earlier, later, spec_values]
 
-def spectral_split(graph: nx.MultiDiGraph, vertex_list: list[None] = None, lq: float = 2.0, lp: float = 2.0, const_dir: float = 0.5) -> list[list[None],list[None]]:
+def spectral_split(graph: nx.MultiDiGraph, vertex_list: list = None, lq: float = 2.0, lp: float = 2.0, const_dir: float = 0.5) -> list:
     result = spectral_split_with_spec_values(graph, vertex_list, lq, lp, const_dir)
     return result[:2]
 
-def top_order_fix(graph: nx.MultiDiGraph, earlier: list[None], later: list[None]) -> list[list[None], list[None]]:
+def top_order_fix(graph: nx.MultiDiGraph, earlier: list, later: list) -> list:
     vertices = []
     vertices.extend(earlier)
     vertices.extend(later)
@@ -357,7 +357,7 @@ def top_order_fix(graph: nx.MultiDiGraph, earlier: list[None], later: list[None]
     
     return [top_ord[:num_e], top_ord[num_e:]]
 
-def top_order_fix_with_spec_values(graph: nx.MultiDiGraph, earlier: list[None], later: list[None], spec_values: dict[None]) -> list[list[None], list[None]]:
+def top_order_fix_with_spec_values(graph: nx.MultiDiGraph, earlier: list, later: list, spec_values: dict) -> list:
     vertices = []
     vertices.extend(earlier)
     vertices.extend(later)
@@ -367,7 +367,7 @@ def top_order_fix_with_spec_values(graph: nx.MultiDiGraph, earlier: list[None], 
         ind_dict[vert] = ind
     
     remaining_parents = [ 0 for v in vertices]
-    priority = [[0, -spec_values[v], 0, v] for v in vertices ]
+    priority = [[0, int((-2)*spec_values[v]), 0, v] for v in vertices ]
     
     num_e = len(earlier)
     for ind in range(num_e, len(vertices)):
@@ -436,7 +436,7 @@ def part_requiring_recursion(graph: nx.MultiDiGraph) -> str:
     
     return None
 
-def spec_top_order(graph: nx.MultiDiGraph, lp: float = 2.0, const_dir: float = 0.5) -> list[str]:
+def spec_top_order(graph: nx.MultiDiGraph, lp: float = 2.0, const_dir: float = 0.5) -> list:
     if (not nx.is_directed_acyclic_graph(graph)):
         print("Graph is not acyclic")
         return []
@@ -494,7 +494,7 @@ def spec_top_order(graph: nx.MultiDiGraph, lp: float = 2.0, const_dir: float = 0
 
 
 
-def spec_top_order_with_spec_values(graph: nx.MultiDiGraph, lp: float = 2.0, const_dir: float = 0.5) -> list[str]:
+def spec_top_order_with_spec_values(graph: nx.MultiDiGraph, lp: float = 2.0, const_dir: float = 0.5) -> list:
     if (not nx.is_directed_acyclic_graph(graph)):
         print("Graph is not acyclic")
         return []
@@ -555,7 +555,7 @@ def spec_top_order_with_spec_values(graph: nx.MultiDiGraph, lp: float = 2.0, con
 
 
 
-def spec_top_order_whole(graph: nx.MultiDiGraph, lp: float = 2.0, const_dir: float = 0.5) -> list[str]:
+def spec_top_order_whole(graph: nx.MultiDiGraph, lp: float = 2.0, const_dir: float = 0.5) -> list:
     weak_comp = nx.weakly_connected_components(graph)
     
     top_order = []
@@ -567,7 +567,7 @@ def spec_top_order_whole(graph: nx.MultiDiGraph, lp: float = 2.0, const_dir: flo
         
     return top_order
 
-def spec_top_order_whole_with_spec_values(graph: nx.MultiDiGraph, lp: float = 2.0, const_dir: float = 0.5) -> list[str]:
+def spec_top_order_whole_with_spec_values(graph: nx.MultiDiGraph, lp: float = 2.0, const_dir: float = 0.5) -> list:
     weak_comp = nx.weakly_connected_components(graph)
     
     top_order = []
@@ -579,7 +579,7 @@ def spec_top_order_whole_with_spec_values(graph: nx.MultiDiGraph, lp: float = 2.
         
     return top_order
 
-def check_valid_top_order(graph: nx.MultiDiGraph, top_order: list[None]) -> bool:
+def check_valid_top_order(graph: nx.MultiDiGraph, top_order: list) -> bool:
     if (len(graph.nodes) != len(top_order)):
         return False
     
@@ -597,7 +597,7 @@ def check_valid_top_order(graph: nx.MultiDiGraph, top_order: list[None]) -> bool
     
     return True
 
-def nx_graph_from_upper_triangular_matrix(mat: list[list]) -> nx.MultiDiGraph:
+def nx_graph_from_upper_triangular_matrix(mat: list) -> nx.MultiDiGraph:
     assert(len(mat) == len(mat[0]))
     mat_size = len(mat)
     
@@ -615,7 +615,7 @@ def nx_graph_from_upper_triangular_matrix(mat: list[list]) -> nx.MultiDiGraph:
 
 
 
-def top_order_small_cut_fix(graph: nx.MultiDiGraph, earlier: list[None], later: list[None]) -> list[list, list, float]:
+def top_order_small_cut_fix(graph: nx.MultiDiGraph, earlier: list, later: list) -> list:
     vertices = []
     vertices.extend(earlier)
     vertices.extend(later)
@@ -739,7 +739,7 @@ def top_order_small_cut_fix(graph: nx.MultiDiGraph, earlier: list[None], later: 
 
 
 
-def top_order_small_cut_fix_with_spec_values(graph: nx.MultiDiGraph, earlier: list[None], later: list[None], spec_values: dict[None]) -> list[list[None], list[None]]:
+def top_order_small_cut_fix_with_spec_values(graph: nx.MultiDiGraph, earlier: list, later: list, spec_values: dict) -> list:
     vertices = []
     vertices.extend(earlier)
     vertices.extend(later)
@@ -749,7 +749,7 @@ def top_order_small_cut_fix_with_spec_values(graph: nx.MultiDiGraph, earlier: li
         ind_dict[vert] = ind
     
     remaining_parents = [ 0 for v in vertices]
-    priority = [[0, -spec_values[v], 0, v] for v in vertices ]
+    priority = [[0, int((-2)*spec_values[v]), 0, v] for v in vertices ]
     
     num_e = len(earlier)
     for ind in range(num_e, len(vertices)):
@@ -855,7 +855,7 @@ def top_order_small_cut_fix_with_spec_values(graph: nx.MultiDiGraph, earlier: li
 
 
 
-def spectral_acyclic_bi_partition_with_stable_proportion(graph: nx.MultiDiGraph, lp: float = 2.0, const_dir: float = 0.5) -> list[list, list, float]:
+def spectral_acyclic_bi_partition_with_stable_proportion(graph: nx.MultiDiGraph, lp: float = 2.0, const_dir: float = 0.5) -> list:
     if (not nx.is_directed_acyclic_graph(graph)):
         print("Graph is not acyclic")
         return []
@@ -879,12 +879,12 @@ def spectral_acyclic_bi_partition_with_stable_proportion(graph: nx.MultiDiGraph,
     
     return top_order_small_cut_fix(graph, earlier, later)
 
-def spectral_acyclic_bi_partition(graph: nx.MultiDiGraph, lp: float = 2.0, const_dir: float = 0.5) -> list[list[None], list[None]]:
+def spectral_acyclic_bi_partition(graph: nx.MultiDiGraph, lp: float = 2.0, const_dir: float = 0.5) -> list:
     ans = spectral_acyclic_bi_partition_with_stable_proportion(graph, lp, const_dir)
     return ans[:2]
     
 
-def spectral_acyclic_bi_partition_with_spec_values(graph: nx.MultiDiGraph, lp: float = 2.0, const_dir: float = 0.5) -> list[list[None], list[None]]:
+def spectral_acyclic_bi_partition_with_spec_values(graph: nx.MultiDiGraph, lp: float = 2.0, const_dir: float = 0.5) -> list:
     if (not nx.is_directed_acyclic_graph(graph)):
         print("Graph is not acyclic")
         return []
@@ -937,7 +937,7 @@ def main():
         graph = nx_graph_from_upper_triangular_matrix(matrix.toarray())
         
         plt.figure("Original Graph: " + graph_name)
-        plt.spy(matrix.toarray())
+        plt.spy(matrix.toarray(), markersize=4)
     else:
         print("Unknown file format!")
         return 1
@@ -952,7 +952,7 @@ def main():
     print(top_order)
     
     plt.figure("Reordered Graph: " + graph_name)
-    plt.spy(nx.to_numpy_array(graph, top_order))
+    plt.spy(nx.to_numpy_array(graph, top_order), markersize=4)
     plt.show()
 
     return 0
